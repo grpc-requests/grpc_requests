@@ -1,11 +1,12 @@
 # grpc requests
+
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/grpc-requests?style=flat-square)](https://pypi.org/project/grpc-requests)
 [![PyPI](https://img.shields.io/pypi/v/grpc-requests?style=flat-square)](https://pypi.org/project/grpc-requests)
 [![PyPI download month](https://img.shields.io/pypi/dm/grpc-requests?style=flat-square)](https://pypi.org/project/grpc-requests)
 [![codecov](https://codecov.io/gh/spaceone-dev/grpc_requests/branch/master/graph/badge.svg)](https://codecov.io/gh/spaceone-dev/grpc_requests)
 ![Views](https://views.whatilearened.today/views/github/spaceone-dev/grpc_requests.svg)
 
-## GRPC for Humans 
+## GRPC for Humans
 
 ```python
 from grpc_requests import Client
@@ -19,22 +20,24 @@ print(result) # {"message":"Hellow sinsky"}
 
 ```
 
+## Features
 
-## Feature
 - connect server using reflection or Stub
 - no need stub class request grpc(if you want)
 - support all unary &  stream method
 - support tls & compression connect
 - support AsyncIO API
 
-## install
+## Install
+
 ```shell script
 pip install grpc_requests
 ```
 
-## use it like RPC!
+## Use it like RPC
 
-If your server support reflection!
+If your server supports reflection:
+
 ```python
 from grpc_requests import Client
 
@@ -61,8 +64,10 @@ requests_data = [{"name": 'sinsky'}]
 result = greeter.HelloEveryone(requests_data)
 results = greeter.SayHelloOneByOne(requests_data)
 
-```    
-or not you can also use your stub
+```
+
+If not you can also use your stub client:
+
 ```python
 from grpc_requests import StubClient
 from .hellow_pb2 import Descriptor
@@ -86,11 +91,12 @@ requests_data = [{"name": 'sinsky'}]
 result = greeter.HelloEveryone(requests_data)
 results = greeter.SayHelloOneByOne(requests_data)
 
-```    
+```
 
-## example
+## Examples
 
-### request unary-unary
+### Request unary-unary
+
 ```python
 service = "helloworld.Greeter"
 unary_unary_method = 'SayHello'
@@ -109,7 +115,8 @@ assert dict == type(result) # result is dict Type!!! not Stub Object!
 assert {"message":"Hellow sinsky"} == result
 ```
 
-### request unary-stream
+### Request unary-stream
+
 ```python
 unary_stream_method = 'SayHelloGroup'
 unary_stream_results = client.request(service, unary_unary_method, request_data)
@@ -123,7 +130,8 @@ assert all([dict == type(result) for result in unary_stream_results])
 assert [{"message":"Hellow sinsky"}] == list(unary_stream_results)
 ```
 
-### request stream-unary
+### Request stream-unary
+
 ```python
 requests_data = [request_data] # iterator
 stream_unary_method = 'HelloEveryone'
@@ -137,7 +145,8 @@ result_stream_unary = client.stream_unary(service, stream_unary_method, requests
 assert dict == type(result) # result is dict Type!!! not Stub Object!
 ```
 
-### request stream-stream
+### Request stream-stream
+
 ```python
 requests_data = [request_data] # iterator
 stream_stream_method = 'SayHelloOneByOne'
@@ -151,9 +160,8 @@ result = client.stream_stream(service, stream_stream_method,requests_data )
 assert all([dict == type(result) for result in unary_stream_results])
 ```
 
+##  Reflection Client but you can send mesg by stub
 
-
-##  Reflection Client but you can send mesg by stub 
 ```python
 from grpc_requests import Client
 from helloworld_pb2 import HelloRequest
@@ -178,6 +186,7 @@ print(type(result)) # HelloReply stub class
 ```
 
 ## AsyncIO API
+
 ```python
 from grpc_requests.aio import AsyncClient
 
@@ -203,16 +212,14 @@ results = [x async for x in await greeter.SayHelloOneByOne(requests_data)]
 ```
 
 ## Road map
+
 - [x] support no reflection server(Stub Client)
 - [x] support async API!
 - [ ] Document!
 - [ ] plugable interceptor
 
-
-## Relation Project
-- [homi](https://github.com/spaceone-dev/homi) : micro grpc framework like flask. easy to use!
-
 ## Change Logs
+
 - [0.1.7](https://github.com/spaceone-dev/grpc_requests/releases/tag/v0.1.7)
   - remove homi & test code
 - [0.1.6](https://github.com/spaceone-dev/grpc_requests/releases/tag/v0.1.6)
