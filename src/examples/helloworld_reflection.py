@@ -36,7 +36,7 @@ unary_stream_request = {"name": "".join(name_list)}
 responses = client.unary_stream(service, unary_stream_method, unary_stream_request)
 assert all(type(response) == dict for response in responses)
 for response, name in zip(responses, name_list):
-  assert response == {"message": f"Hello, {name}!"}
+    assert response == {"message": f"Hello, {name}!"}
 
 # Stream-Unary Example
 
@@ -55,4 +55,4 @@ stream_stream_request = [{"name": name} for name in name_list]
 responses = client.stream_stream(service, stream_stream_method, stream_stream_request)
 assert all(type(response) == dict for response in responses)
 for response, name in zip(responses, name_list):
-  assert response == {"message": f"Hello, {name}!"}
+    assert response == {"message": f"Hello, {name}!"}
