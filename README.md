@@ -36,15 +36,15 @@ pip install grpc_requests
 
 ## Use it like RPC
 
-If your server supports reflection:
+If your server supports reflection, use the `Client` class:
 
 ```python
 from grpc_requests import Client
 
 client = Client.get_by_endpoint("localhost:50051")
-# if you want connect tls
+# if you want a TLS connection
 # client = Client.get_by_endpoint("localhost:443",ssl=True)
-# or if you want Compression connect
+# or if you want a compression enabled connection
 # client = Client.get_by_endpoint("localhost:443",compression=grpc.Compression.Gzip)
 assert client.service_names == ["helloworld.Greeter",'grpc.health.v1.Health']
 
@@ -53,34 +53,24 @@ assert health.method_names == ('Check', 'Watch')
 
 result = health.Check()
 assert result == {'status': 'SERVING'}
-
-greeter = client.service("helloworld.Greeter")
-
-request_data = {"name": 'sinsky'}
-result = greeter.SayHello(request_data)
-results = greeter.SayHelloGroup(request_data)
-
-requests_data = [{"name": 'sinsky'}]
-result = greeter.HelloEveryone(requests_data)
-results = greeter.SayHelloOneByOne(requests_data)
-
 ```
 
-If not you can also use your stub client:
+If not, use the `StubClient` class:
 
 ```python
 from grpc_requests import StubClient
-from .hellow_pb2 import Descriptor
+from .helloworld_pb2 import Descriptor
 
 service_descriptor = DESCRIPTOR.services_by_name['Greeter'] # or you can just use _GREETER
 
 
 client = StubClient.get_by_endpoint("localhost:50051",service_descriptors=[service_descriptor,])
-# if you want connect tls
-# client = Client.get_by_endpoint("localhost:443",ssl=True)
-# or if you want Compression connect
-# client = Client.get_by_endpoint("localhost:443",compression=grpc.Compression.Gzip)
 assert client.service_names == ["helloworld.Greeter"]
+```
+
+In both cases, the same methods are used to interact with the server.
+
+```python
 greeter = client.service("helloworld.Greeter")
 
 request_data = {"name": 'sinsky'}
@@ -95,7 +85,9 @@ results = greeter.SayHelloOneByOne(requests_data)
 
 ## Examples
 
-## Reflection Client but you can send message by stub
+- [helloworld reflection client](src/examples/helloworld_reflection.py)
+
+### Reflection Client but you can send message by stub
 
 ```python
 from grpc_requests import Client
@@ -120,7 +112,7 @@ result = client.unary_unary(service, method, HelloRequest(name='sinsky'),raw_out
 print(type(result)) # HelloReply stub class
 ```
 
-## AsyncIO API
+### AsyncIO API
 
 ```python
 from grpc_requests.aio import AsyncClient
