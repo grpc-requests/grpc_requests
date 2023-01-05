@@ -147,5 +147,5 @@ results = [x async for x in await greeter.SayHelloOneByOne(requests_data)]
 
 ## Maintainers
 
-- sisky - [wesky93](https://github.com/wesky93)
+- sinsky - [wesky93](https://github.com/wesky93)
 - Wayne Manselle - [ViridianForge](https://github.com/ViridianForge)
