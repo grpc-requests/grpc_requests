@@ -47,6 +47,28 @@ def test_describe_method_request(client_tester_reflection_client):
         request_description == expected_request_description
     ), f"Expected: {expected_request_description}, Actual: {request_description}"
 
+def test_describe_request(client_tester_reflection_client):
+    request_description = \
+        client_tester_reflection_client.describe_request('client_tester.ClientTester', 'TestUnaryUnary')
+    expected_request_description = """TestRequest
+Fields:
+\tfactor: INT32
+\treadings: FLOAT
+\tuuid: UINT64
+\tsample_flag: BOOL
+\trequest_name: STRING
+\textra_data: BYTES"""
+    assert request_description == expected_request_description
+
+def test_describe_response(client_tester_reflection_client):
+    request_description = \
+        client_tester_reflection_client.describe_response('client_tester.ClientTester', 'TestUnaryUnary')
+    expected_response_description = """TestResponse
+Fields:
+\taverage: DOUBLE
+\tfeedback: STRING"""
+    assert request_description == expected_response_description
+
 def test_empty_body_request(helloworld_reflection_client):
     response = helloworld_reflection_client.request('helloworld.Greeter', 'SayHello', {})
     assert isinstance(response, dict)

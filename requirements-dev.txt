@@ -4,5 +4,6 @@ wheel>=0.38.4
 twine>=4.0.2
 flake8>=5.0.4
 pytest-cov>=4.0.0
+pytest-asyncio>=0.15.1
 aiounittest==1.4.2
 

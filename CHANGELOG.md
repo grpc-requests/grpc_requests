@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.12](https://github.com/wesky93/grpc_requests/releases/tag/v0.1.12) - 2023-11-26
+
+## Added
+
+- Method to print out a generic descriptor added to utils collection
+- Helper methods to print out a method's request and responses in a human readable format
+
+## Changed
+
+- Documentation revamped
+- Version checks to avoid using deprecated methods added to async client
+
+## Fixed
+
+- Include `requirements.txt` in build manifest
+
+## Deprecated
+
+- Method to retrieve fields for the descriptor of a method's input type.
+
+## Added
+
+## [0.1.11](https://github.com/wesky93/grpc_requests/releases/tag/v0.1.11) - 2023-10-05
+
+## Added
+
+- Method to retrieve fields for the descriptor of a method's input type.
+
+## Changes
+
+- Updates to minimum versons of requirements to address vulnerabilities
+
 ## [0.1.10](https://github.com/wesky93/grpc_requests/releases/tag/v0.1.10) - 2023-03-07
 
 ## Fixed

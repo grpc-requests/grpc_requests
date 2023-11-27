@@ -1,10 +1,11 @@
 import logging
+import sys
 from enum import Enum
 from functools import partial
 from typing import Any, AsyncIterable, Dict, Iterable, List, NamedTuple, Optional, Tuple, TypeVar
 
 import grpc
-from google.protobuf import descriptor_pb2, descriptor_pool as _descriptor_pool, symbol_database as _symbol_database
+from google.protobuf import descriptor_pb2, descriptor_pool as _descriptor_pool, symbol_database as _symbol_database, message_factory  # noqa: E501
 from google.protobuf.descriptor import MethodDescriptor, ServiceDescriptor
 from google.protobuf.descriptor_pb2 import ServiceDescriptorProto
 from google.protobuf.json_format import MessageToDict, ParseDict
@@ -13,6 +14,23 @@ from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 from .client import CredentialsInfo
 from .utils import load_data
 logger = logging.getLogger(__name__)
+
+if sys.version_info >= (3, 8):
+    import importlib.metadata
+
+    def get_metadata(package_name: str):
+        return importlib.metadata.version(package_name)
+else:
+    import pkg_resources
+
+    def get_metadata(package_name: str):
+        return pkg_resources.get_distribution(package_name).version
+
+# Import GetMessageClass if protobuf version supports it
+protobuf_version = get_metadata('protobuf').split('.')
+get_message_class_supported = int(protobuf_version[0]) >= 4 and int(protobuf_version[1]) >= 22
+if get_message_class_supported:
+    from google.protobuf.message_factory import GetMessageClass
 
 
 class DescriptorImport:
@@ -195,8 +213,14 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
             method_name = method_proto.name
             method_desc: MethodDescriptor = service_descriptor.methods_by_name[method_name]
 
-            input_type = self._symbol_db.GetPrototype(method_desc.input_type)
-            output_type = self._symbol_db.GetPrototype(method_desc.output_type)
+            if get_message_class_supported:
+                input_type = GetMessageClass(method_desc.input_type)
+                output_type = GetMessageClass(method_desc.output_type)
+            else:
+                msg_factory = message_factory.MessageFactory(method_proto)
+                input_type = msg_factory.GetPrototype(method_desc.input_type)
+                output_type = msg_factory.GetPrototype(method_desc.output_type)
+
             method_type = MethodTypeMatch[(method_proto.client_streaming, method_proto.server_streaming)]
 
             method_register_func = getattr(self.channel, method_type.value)
@@ -298,11 +322,11 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         }
 
     async def service(self, name):
-        if name in await self.service_names():
+        available_services = await self.service_names()
+        if name in available_services:
             return await ServiceClient.create(client=self, service_name=name)
         else:
-            service_names = await self.service_names()
-            raise ValueError(name + " doesn't support. Available service " + str(service_names))
+            raise ValueError(name + " is not supported. Available services are: " + str(available_services))
 
 
 class ReflectionAsyncClient(BaseAsyncGrpcClient):
