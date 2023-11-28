@@ -25,7 +25,7 @@ header.
 ```python
 from grpc_requests import Client
 
-metadata = [{"authorization", f"bearer {my_bearer_token}"]
+metadata = [("authorization", f"bearer {my_bearer_token}")]
 client = Client.get_by_endpoint("my.supercool.hostname:443", ssl=True, metadata=metadata)
 
 health_response = client.request('grpc.health.v1.Health', 'Check', {}, metadata=metadata)

@@ -13,7 +13,16 @@ class Greeter(GreeterServicer):
         Unary-Unary
         Sends a HelloReply based on a HelloRequest.
         """
-        return HelloReply(message=f"Hello, {request.name}!")
+        authorized = False
+        if context.invocation_metadata():
+            for key, value in context.invocation_metadata():
+                if key == "password" and value == "12345":
+                    authorized = True
+
+        if authorized:
+            return HelloReply(message=f"Hello, {request.name}, password accepted!")
+        else:
+            return HelloReply(message=f"Hello, {request.name}!")
 
     def SayHelloGroup(self, request, context):
         """

@@ -26,6 +26,15 @@ def client_tester_reflection_client():
     except:  # noqa: E722
         pytest.fail("Could not connect to local Test server")
 
+def test_metadata_usage(helloworld_reflection_client):
+    response = helloworld_reflection_client.request(
+        'helloworld.Greeter', 'SayHello',
+        {"name": "sinsky"},
+        metadata=[('password', '12345')]
+    )
+    assert isinstance(response, dict)
+    assert response == {"message": "Hello, sinsky, password accepted!"}
+
 
 def test_unary_unary(helloworld_reflection_client):
     response = helloworld_reflection_client.request('helloworld.Greeter', 'SayHello', {"name": "sinsky"})
