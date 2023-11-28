@@ -47,7 +47,7 @@ make sure to toggle that flag.
 ```python
 from grpc_requests import Client
 
-metadata = [("authorization":"bearer my.cool.jwt")]
+metadata = [("authorization", "bearer my.cool.jwt")]
 client = Client.get_by_endpoint("cool.servers.arecool:443", ssl=True, metadata=metadata)
 ```
 
