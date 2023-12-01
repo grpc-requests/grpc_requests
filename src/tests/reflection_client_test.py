@@ -4,6 +4,8 @@ import pytest
 from grpc_requests.client import Client
 from google.protobuf.json_format import ParseError
 
+from tests.common import MetadataClientInterceptor
+
 """
 Test cases for reflection based client
 """
@@ -14,6 +16,15 @@ logger = logging.getLogger('name')
 def helloworld_reflection_client():
     try:
         client = Client.get_by_endpoint('localhost:50051')
+        yield client
+    except:  # noqa: E722
+        pytest.fail("Could not connect to local HelloWorld server")
+
+@pytest.fixture(scope="module")
+def helloworld_reflection_client_with_interceptor():
+    try:
+        # Don't use get_by_endpoint here, because interceptors are not cached. Consider caching kwargs too
+        client = Client('localhost:50051', interceptors=[MetadataClientInterceptor()])
         yield client
     except:  # noqa: E722
         pytest.fail("Could not connect to local HelloWorld server")
@@ -34,6 +45,14 @@ def test_metadata_usage(helloworld_reflection_client):
     )
     assert isinstance(response, dict)
     assert response == {"message": "Hello, sinsky, password accepted!"}
+
+def test_interceptor_usage(helloworld_reflection_client_with_interceptor):
+    response = helloworld_reflection_client_with_interceptor.request(
+        'helloworld.Greeter', 'SayHello',
+        {"name": "sinsky"},
+    )
+    assert isinstance(response, dict)
+    assert response == {"message": "Hello, sinsky, interceptor accepted!"}
 
 
 def test_unary_unary(helloworld_reflection_client):

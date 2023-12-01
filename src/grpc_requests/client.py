@@ -1,12 +1,15 @@
 import logging
 import sys
+import warnings
 from enum import Enum
 from functools import partial
-from typing import Any, Dict, Iterable, List, NamedTuple, Optional, Tuple, TypeVar, Union
-import warnings
+from typing import (Any, Dict, Iterable, List, NamedTuple, Optional, Tuple,
+                    TypeVar, Union)
 
 import grpc
-from google.protobuf import descriptor_pb2, descriptor_pool as _descriptor_pool, message_factory
+from google.protobuf import descriptor_pb2
+from google.protobuf import descriptor_pool as _descriptor_pool
+from google.protobuf import message_factory
 from google.protobuf.descriptor import MethodDescriptor, ServiceDescriptor
 from google.protobuf.descriptor_pb2 import ServiceDescriptorProto
 from google.protobuf.json_format import MessageToDict, ParseDict
@@ -15,14 +18,14 @@ from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 from .utils import describe_descriptor, describe_request, load_data
 
 if sys.version_info >= (3, 8):
-    from typing import TypedDict  # pylint: disable=no-name-in-module
     import importlib.metadata
+    from typing import TypedDict  # pylint: disable=no-name-in-module
 
     def get_metadata(package_name: str):
         return importlib.metadata.version(package_name)
 else:
-    from typing_extensions import TypedDict
     import pkg_resources
+    from typing_extensions import TypedDict
 
     def get_metadata(package_name: str):
         return pkg_resources.get_distribution(package_name).version
@@ -67,7 +70,7 @@ class CredentialsInfo(TypedDict):
 
 class BaseClient:
     def __init__(self, endpoint, symbol_db=None, descriptor_pool=None, channel_options=None, ssl=False,
-                 compression=None, credentials: Optional[CredentialsInfo] = None, **kwargs):
+                 compression=None, credentials: Optional[CredentialsInfo] = None, interceptors=None, **kwargs):
         self.endpoint = endpoint
         self._desc_pool = descriptor_pool or _descriptor_pool.Default()
         self.compression = compression
@@ -85,6 +88,9 @@ class BaseClient:
                                                 compression=self.compression)
         else:
             self._channel = grpc.insecure_channel(endpoint, options=self.channel_options, compression=self.compression)
+
+        if interceptors:
+            self._channel = grpc.intercept_channel(self._channel, *interceptors)
 
     @property
     def channel(self):
@@ -349,7 +355,6 @@ class ReflectionClient(BaseGrpcClient):
                  **kwargs):
         super().__init__(endpoint, symbol_db, descriptor_pool, ssl=ssl, lazy=lazy, compression=compression, **kwargs)
         self.reflection_stub = reflection_pb2_grpc.ServerReflectionStub(self.channel)
-        self.registered_file_names = set()
         if not self._lazy:
             self.register_all_service()
 
@@ -381,18 +386,25 @@ class ReflectionClient(BaseGrpcClient):
         proto = result.file_descriptor_response.file_descriptor_proto[0]
         return descriptor_pb2.FileDescriptorProto.FromString(proto)
 
+    def _is_descriptor_registered(self, filename):
+        try:
+            self._desc_pool.FindFileByName(filename)
+        except KeyError:
+            return False
+        else:
+            logger.debug(f'{filename} already registered')
+            return True
+
     def _register_file_descriptor(self, file_descriptor):
         logger.debug(f"start {file_descriptor.name} register")
+        if self._is_descriptor_registered(file_descriptor.name):
+            return
         dependencies = list(file_descriptor.dependency)
         logger.debug(f"find {len(dependencies)} dependency in {file_descriptor.name}")
         for dep_file_name in dependencies:
-            if dep_file_name not in self.registered_file_names:
+            if not self._is_descriptor_registered(dep_file_name):
                 dep_desc = self._get_file_descriptor_by_name(dep_file_name)
                 self._register_file_descriptor(dep_desc)
-                self.registered_file_names.add(dep_file_name)
-            else:
-                logger.debug(f'{dep_file_name} already registered')
-
         try:
             self._desc_pool.Add(file_descriptor)
         except TypeError:

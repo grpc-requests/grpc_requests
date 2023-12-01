@@ -4,6 +4,8 @@ import pytest
 from grpc_requests.aio import AsyncClient
 from google.protobuf.json_format import ParseError
 
+from tests.common import AsyncMetadataClientInterceptor
+
 """
 Test cases for async reflection based client
 """
@@ -17,6 +19,14 @@ async def test_unary_unary():
     response = await greeter_service.SayHello({"name": "sinsky"})
     assert isinstance(response, dict)
     assert response == {"message": "Hello, sinsky!"}
+
+@pytest.mark.asyncio
+async def test_unary_unary_interceptor():
+    client = AsyncClient('localhost:50051', interceptors=[AsyncMetadataClientInterceptor()])
+    greeter_service = await client.service('helloworld.Greeter')
+    response = await greeter_service.SayHello({"name": "sinsky"})
+    assert isinstance(response, dict)
+    assert response == {"message": "Hello, sinsky, interceptor accepted!"}
 
 @pytest.mark.asyncio
 async def test_empty_body_request():
