@@ -264,7 +264,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         try:
             return self._service_methods_meta[service_name]
         except KeyError:
-            raise ValueError(f"{service_name} service can't find")
+            raise ValueError(f"{service_name} service not found on server")
 
     @staticmethod
     def _make_method_full_name(service, method):
@@ -369,44 +369,40 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
     def _is_descriptor_registered(self, filename):
         try:
             self._desc_pool.FindFileByName(filename)
-        except KeyError:
-            return False
-        else:
             logger.debug(f'{filename} already registered')
             return True
+        except KeyError:
+            return False
 
     async def _register_file_descriptor(self, file_descriptor):
-        logger.debug(f"start {file_descriptor.name} register")
-        if self._is_descriptor_registered(file_descriptor.name):
-            return
-        dependencies = list(file_descriptor.dependency)
-        logger.debug(f"find {len(dependencies)} dependency in {file_descriptor.name}")
-        for dep_file_name in dependencies:
-            if not self._is_descriptor_registered(dep_file_name):
-                dep_desc = await self._get_file_descriptor_by_name(dep_file_name)
-                await self._register_file_descriptor(dep_desc)
-        try:
-            self._desc_pool.Add(file_descriptor)
-        except TypeError:
-            logger.debug(f"{file_descriptor.name} already present in pool. Skipping.")
-        logger.debug(f"end {file_descriptor.name} register")
+        if not self._is_descriptor_registered(file_descriptor.name):
+            logger.debug(f"start {file_descriptor.name} register")
+            dependencies = list(file_descriptor.dependency)
+            logger.debug(f"found {len(dependencies)} dependencies for {file_descriptor.name}")
+            for dep_file_name in dependencies:
+                if not self._is_descriptor_registered(dep_file_name):
+                    dep_desc = await self._get_file_descriptor_by_name(dep_file_name)
+                    await self._register_file_descriptor(dep_desc)
+            try:
+                self._desc_pool.Add(file_descriptor)
+            except TypeError:
+                logger.debug(f"{file_descriptor.name} already present in pool. Skipping.")
+            logger.debug(f"{file_descriptor.name} registration complete")
 
-    async def register_service(self, service_name):
-        logger.debug(f"start {service_name} register")
+    def _is_service_registered(self, service_name):
         try:
             self._desc_pool.FindServiceByName(service_name)
-            is_registered = True
+            logger.debug(f'{service_name} already registered')
+            return True
         except KeyError:
-            is_registered = False
-        if not is_registered:
-            try:
-                file_descriptor = await self._get_file_descriptor_by_symbol(service_name)
-                await self._register_file_descriptor(file_descriptor)
-            except Exception as e:
-                logger.warning(f"registered {service_name} failed, may be already registered", exc_info=e)
-            logger.debug(f"end {service_name} register")
-        else:
-            logger.debug(f"{service_name} is already register")
+            return False
+
+    async def register_service(self, service_name):
+        if not self._is_service_registered(service_name):
+            logger.debug(f"start {service_name} registration")
+            file_descriptor = await self._get_file_descriptor_by_symbol(service_name)
+            await self._register_file_descriptor(file_descriptor)
+            logger.debug(f"{service_name} registration complete")
         await super(ReflectionAsyncClient, self).register_service(service_name)
 
 
