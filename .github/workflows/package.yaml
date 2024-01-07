@@ -20,9 +20,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
         pip install -e .
-    - name: Lint with flake8
+    - name: Lint and check formatting with ruff
       run: |
-        flake8 . --count --show-source --statistics
+        ruff check src/grpc_requests/*.py src/tests/*.py --statistics
+        ruff format src/grpc_requests/*.py src/tests/*.py --check
     - name: Test with pytest
       run: |
         pytest --cov-report=xml --cov=src/grpc_requests
