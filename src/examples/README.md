@@ -122,3 +122,64 @@ requests_data = [{"name": "sinsky"}]
 result = await greeter.HelloEveryone(requests_data)
 results = [x async for x in await greeter.SayHelloOneByOne(requests_data)]  
 ```
+
+## Retrieving Information about a Server
+
+All forms of clients expose methods to allow a user to query a server about its
+provided services and their methods.
+
+Examples are provided using the Client type, but the same methods are on the
+AsyncClient as well.
+
+### Retrieving Descriptors from a Server
+
+```python
+from grpc_requests.client import Client
+
+client = Client("localhost:50051")
+
+greeterServiceDescriptor = client.get_service_descriptor("helloworld.Greeter")
+sayHelloDescriptor = client.get_method_descriptor("helloworld.Greeter","SayHello")
+
+#As of 0.1.14 FileDescriptor Methods are only exposed on Reflection Clients
+fileDescriptorByName = client.get_file_descriptor_by_name("helloworld.proto")
+fileDescriptorBySymbol = client.get_file_descriptor_by_symbol("helloworld.Greeter")
+```
+
+### Method Metadata
+
+grpc_requests utilizes MethodMetaData objects to organize the methods of the
+services of the servers clients are built for.
+
+```python
+from grpc_requests.client import Client
+
+client = Client("localhost:50051")
+
+sayHelloMethodMetaData = client.get_method_meta("helloworld.Greeter", "SayHello")
+
+sayHelloInputType = sayHelloMethodMetaData.input_type
+sayHelloOutputType = sayHelloMethodMetaData.output_type
+sayHelloDescriptor = sayHelloMethodMetaData.descriptor
+
+assert sayHelloDescriptor.name == "SayHello"
+assert sayHelloDescriptor.containing_service.name == "helloworld.Greeter"
+```
+
+### Describing Requests and Responses
+
+grpc_requests makes available two experimental methods to provide users ways
+to retrieve human readable descriptions of the request and response for implementer
+review.
+
+```python
+from grpc_requests.client import Client
+
+client = Client("localhost:50051")
+
+sayHelloRequestDescription = client.describe_request("helloworld.Greeter", "SayHello")
+sayHelloResponseDescription = client.describe_response("helloworld.Greeter", "SayHello")
+
+print(sayHelloRequestDescription)
+print(sayHelloResponseDescription)
+```

@@ -3,8 +3,17 @@ import sys
 import warnings
 from enum import Enum
 from functools import partial
-from typing import (Any, Dict, Iterable, List, NamedTuple, Optional, Tuple,
-                    TypeVar, Union)
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import grpc
 from google.protobuf import descriptor_pb2
@@ -30,9 +39,12 @@ else:
     def get_metadata(package_name: str):
         return pkg_resources.get_distribution(package_name).version
 
+
 # Import GetMessageClass if protobuf version supports it
-protobuf_version = get_metadata('protobuf').split('.')
-get_message_class_supported = int(protobuf_version[0]) >= 4 and int(protobuf_version[1]) >= 22
+protobuf_version = get_metadata("protobuf").split(".")
+get_message_class_supported = (
+    int(protobuf_version[0]) >= 4 and int(protobuf_version[1]) >= 22
+)
 if get_message_class_supported:
     from google.protobuf.message_factory import GetMessageClass
 
@@ -40,7 +52,9 @@ logger = logging.getLogger(__name__)
 
 
 class DescriptorImport:
-    def __init__(self, ):
+    def __init__(
+        self,
+    ):
         pass
 
 
@@ -69,8 +83,18 @@ class CredentialsInfo(TypedDict):
 
 
 class BaseClient:
-    def __init__(self, endpoint, symbol_db=None, descriptor_pool=None, channel_options=None, ssl=False,
-                 compression=None, credentials: Optional[CredentialsInfo] = None, interceptors=None, **kwargs):
+    def __init__(
+        self,
+        endpoint,
+        symbol_db=None,
+        descriptor_pool=None,
+        channel_options=None,
+        ssl=False,
+        compression=None,
+        credentials: Optional[CredentialsInfo] = None,
+        interceptors=None,
+        **kwargs,
+    ):
         self.endpoint = endpoint
         self._desc_pool = descriptor_pool or _descriptor_pool.Default()
         self.compression = compression
@@ -83,11 +107,16 @@ class BaseClient:
                     for k, v in credentials.items()
                 }
 
-            self._channel = grpc.secure_channel(endpoint, grpc.ssl_channel_credentials(**_credentials),
-                                                options=self.channel_options,
-                                                compression=self.compression)
+            self._channel = grpc.secure_channel(
+                endpoint,
+                grpc.ssl_channel_credentials(**_credentials),
+                options=self.channel_options,
+                compression=self.compression,
+            )
         else:
-            self._channel = grpc.insecure_channel(endpoint, options=self.channel_options, compression=self.compression)
+            self._channel = grpc.insecure_channel(
+                endpoint, options=self.channel_options, compression=self.compression
+            )
 
         if interceptors:
             self._channel = grpc.intercept_channel(self._channel, *interceptors)
@@ -107,7 +136,7 @@ class BaseClient:
         try:
             self._channel._close()
         except Exception as e:  # pylint: disable=bare-except
-            logger.warning('can not close channel', exc_info=e)
+            logger.warning("can not close channel", exc_info=e)
         return False
 
     def __del__(self):
@@ -115,7 +144,7 @@ class BaseClient:
             try:
                 del self._channel
             except Exception as e:  # pylint: disable=bare-except
-                logger.warning('can not delete channel', exc_info=e)
+                logger.warning("can not delete channel", exc_info=e)
 
 
 def parse_request_data(request_data, input_type):
@@ -139,14 +168,14 @@ def parse_stream_responses(responses: Iterable):
 
 
 class MethodType(Enum):
-    UNARY_UNARY = 'unary_unary'
-    STREAM_UNARY = 'stream_unary'
-    UNARY_STREAM = 'unary_stream'
-    STREAM_STREAM = 'stream_stream'
+    UNARY_UNARY = "unary_unary"
+    STREAM_UNARY = "stream_unary"
+    UNARY_STREAM = "unary_stream"
+    STREAM_STREAM = "stream_stream"
 
     @property
     def is_unary_request(self):
-        return 'unary_' in self.value
+        return "unary_" in self.value
 
     @property
     def request_parser(self):
@@ -154,7 +183,7 @@ class MethodType(Enum):
 
     @property
     def is_unary_response(self):
-        return '_unary' in self.value
+        return "_unary" in self.value
 
     @property
     def response_parser(self):
@@ -166,6 +195,7 @@ class MethodMetaData(NamedTuple):
     output_type: Any
     method_type: MethodType
     handler: Any
+    descriptor: MethodDescriptor
 
 
 IS_REQUEST_STREAM = TypeVar("IS_REQUEST_STREAM")
@@ -180,10 +210,24 @@ MethodTypeMatch: Dict[Tuple[IS_REQUEST_STREAM, IS_RESPONSE_STREAM], MethodType] 
 
 
 class BaseGrpcClient(BaseClient):
-
-    def __init__(self, endpoint, symbol_db=None, descriptor_pool=None, lazy=False, ssl=False, compression=None,
-                 **kwargs):
-        super().__init__(endpoint, symbol_db, descriptor_pool, ssl=ssl, compression=compression, **kwargs)
+    def __init__(
+        self,
+        endpoint,
+        symbol_db=None,
+        descriptor_pool=None,
+        lazy=False,
+        ssl=False,
+        compression=None,
+        **kwargs,
+    ):
+        super().__init__(
+            endpoint,
+            symbol_db,
+            descriptor_pool,
+            ssl=ssl,
+            compression=compression,
+            **kwargs,
+        )
         self._service_names: list = None
         self._lazy = lazy
         self.has_server_registered = False
@@ -201,29 +245,36 @@ class BaseGrpcClient(BaseClient):
     def check_method_available(self, service, method, method_type: MethodType = None):
         if not self.has_server_registered:
             self.register_all_service()
-        print(service)
+        logger.debug(service)
         methods_meta = self._service_methods_meta.get(service)
-        print(methods_meta)
+        logger.debug(methods_meta)
         if not methods_meta:
             raise ValueError(
-                f"{self.endpoint} server doesn't support {service}. Available services {self.service_names}")
+                f"{self.endpoint} server doesn't support {service}. Available services {self.service_names}"
+            )
 
         if method not in methods_meta:
             raise ValueError(
-                f"{service} doesn't support {method} method. Available methods {methods_meta.keys()}")
+                f"{service} doesn't support {method} method. Available methods {methods_meta.keys()}"
+            )
         if method_type and method_type != methods_meta[method].method_type:
             raise ValueError(
-                f"{method} is {methods_meta[method].method_type.value} not {method_type.value}")
+                f"{method} is {methods_meta[method].method_type.value} not {method_type.value}"
+            )
         return True
 
-    def _register_methods(self, service_descriptor: ServiceDescriptor) -> Dict[str, MethodMetaData]:
+    def _register_methods(
+        self, service_descriptor: ServiceDescriptor
+    ) -> Dict[str, MethodMetaData]:
         svc_desc_proto = ServiceDescriptorProto()
         service_descriptor.CopyToProto(svc_desc_proto)
         service_full_name = service_descriptor.full_name
         metadata: Dict[str, MethodMetaData] = {}
         for method_proto in svc_desc_proto.method:
             method_name = method_proto.name
-            method_desc: MethodDescriptor = service_descriptor.methods_by_name[method_name]
+            method_desc: MethodDescriptor = service_descriptor.methods_by_name[
+                method_name
+            ]
 
             if get_message_class_supported:
                 input_type = GetMessageClass(method_desc.input_type)
@@ -233,29 +284,34 @@ class BaseGrpcClient(BaseClient):
                 input_type = msg_factory.GetPrototype(method_desc.input_type)
                 output_type = msg_factory.GetPrototype(method_desc.output_type)
 
-            method_type = MethodTypeMatch[(method_proto.client_streaming, method_proto.server_streaming)]
+            method_type = MethodTypeMatch[
+                (method_proto.client_streaming, method_proto.server_streaming)
+            ]
 
             method_register_func = getattr(self.channel, method_type.value)
             handler = method_register_func(
                 method=self._make_method_full_name(service_full_name, method_name),
                 request_serializer=input_type.SerializeToString,
-                response_deserializer=output_type.FromString
+                response_deserializer=output_type.FromString,
             )
             metadata[method_name] = MethodMetaData(
                 method_type=method_type,
                 input_type=input_type,
                 output_type=output_type,
-                handler=handler
+                handler=handler,
+                descriptor=method_desc,
             )
         return metadata
 
     def register_service(self, service_name):
         logger.debug(f"start {service_name} registration")
         try:
-            svc_desc = self._desc_pool.FindServiceByName(service_name)
+            svc_desc = self.get_service_descriptor(service_name)
             self._service_methods_meta[service_name] = self._register_methods(svc_desc)
         except KeyError:
-            logger.debug(f"{service_name} not found in descriptor pool, methods will not be registered")
+            logger.debug(
+                f"{service_name} not found in descriptor pool, methods will not be registered"
+            )
         logger.debug(f"end {service_name} registration")
 
     def register_all_service(self):
@@ -270,8 +326,11 @@ class BaseGrpcClient(BaseClient):
         return self._service_names
 
     def get_methods_meta(self, service_name: str):
-
-        if self._lazy and service_name in self.service_names and service_name not in self._service_methods_meta:
+        if (
+            self._lazy
+            and service_name in self.service_names
+            and service_name not in self._service_methods_meta
+        ):
             self.register_service(service_name)
 
         try:
@@ -287,7 +346,9 @@ class BaseGrpcClient(BaseClient):
         # does not check request is available
         method_meta = self.get_method_meta(service, method)
 
-        _request = method_meta.method_type.request_parser(request, method_meta.input_type)
+        _request = method_meta.method_type.request_parser(
+            request, method_meta.input_type
+        )
         result = method_meta.handler(_request, **kwargs)
 
         if raw_output:
@@ -316,20 +377,31 @@ class BaseGrpcClient(BaseClient):
         return self._request(service, method, requests, raw_output, **kwargs)
 
     def get_service_descriptor(self, service):
+        """
+        Retrieve the service descriptor for a given service name.
+
+        :param service: The name of the service to retrieve the descriptor for.
+        :return: The service descriptor.
+        :throws KeyError: If the service is not found in the descriptor pool.
+        """
         return self._desc_pool.FindServiceByName(service)
 
     def describe_method_request(self, service, method):
         warnings.warn(
             "This function is deprecated, and will be removed in a future release. Use describe_request() instead.",
-            DeprecationWarning
+            DeprecationWarning,
         )
         return describe_request(self.get_method_descriptor(service, method))
 
     def describe_request(self, service, method):
-        return describe_descriptor(self.get_method_descriptor(service, method).input_type)
+        return describe_descriptor(
+            self.get_method_descriptor(service, method).input_type
+        )
 
     def describe_response(self, service, method):
-        return describe_descriptor(self.get_method_descriptor(service, method).output_type)
+        return describe_descriptor(
+            self.get_method_descriptor(service, method).output_type
+        )
 
     def get_method_descriptor(self, service, method):
         svc_desc = self.get_service_descriptor(service)
@@ -342,23 +414,40 @@ class BaseGrpcClient(BaseClient):
     def make_handler_argument(self, service: str, method: str):
         data_type = self.get_method_meta(service, method)
         return {
-            'method': self._make_method_full_name(service, method),
-            'request_serializer': data_type.input_type.SerializeToString,
-            'response_deserializer': data_type.output_type.FromString,
+            "method": self._make_method_full_name(service, method),
+            "request_serializer": data_type.input_type.SerializeToString,
+            "response_deserializer": data_type.output_type.FromString,
         }
 
     def service(self, name):
         if name in self.service_names:
             return ServiceClient(client=self, service_name=name)
         else:
-            raise ValueError(f"{name} is not a supported service. Available services are {self.service_names}")
+            raise ValueError(
+                f"{name} is not a supported service. Available services are {self.service_names}"
+            )
 
 
 class ReflectionClient(BaseGrpcClient):
-
-    def __init__(self, endpoint, symbol_db=None, descriptor_pool=None, lazy=False, ssl=False, compression=None,
-                 **kwargs):
-        super().__init__(endpoint, symbol_db, descriptor_pool, ssl=ssl, lazy=lazy, compression=compression, **kwargs)
+    def __init__(
+        self,
+        endpoint,
+        symbol_db=None,
+        descriptor_pool=None,
+        lazy=False,
+        ssl=False,
+        compression=None,
+        **kwargs,
+    ):
+        super().__init__(
+            endpoint,
+            symbol_db,
+            descriptor_pool,
+            ssl=ssl,
+            lazy=lazy,
+            compression=compression,
+            **kwargs,
+        )
         self.reflection_stub = reflection_pb2_grpc.ServerReflectionStub(self.channel)
         if not self._lazy:
             self.register_all_service()
@@ -370,7 +459,7 @@ class ReflectionClient(BaseGrpcClient):
     def _reflection_single_request(self, request):
         results = list(self._reflection_request(request))
         if len(results) > 1:
-            raise ValueError('response has more than one result')
+            raise ValueError("response has more than one result")
         return results[0]
 
     def _get_service_names(self):
@@ -379,13 +468,13 @@ class ReflectionClient(BaseGrpcClient):
         services = tuple([s.name for s in resp.list_services_response.service])
         return services
 
-    def _get_file_descriptor_by_name(self, name):
+    def get_file_descriptor_by_name(self, name):
         request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)
         result = self._reflection_single_request(request)
         proto = result.file_descriptor_response.file_descriptor_proto[0]
         return descriptor_pb2.FileDescriptorProto.FromString(proto)
 
-    def _get_file_descriptor_by_symbol(self, symbol):
+    def get_file_descriptor_by_symbol(self, symbol):
         request = reflection_pb2.ServerReflectionRequest(file_containing_symbol=symbol)
         result = self._reflection_single_request(request)
         proto = result.file_descriptor_response.file_descriptor_proto[0]
@@ -394,7 +483,7 @@ class ReflectionClient(BaseGrpcClient):
     def _is_descriptor_registered(self, filename):
         try:
             self._desc_pool.FindFileByName(filename)
-            logger.debug(f'{filename} already registered')
+            logger.debug(f"{filename} already registered")
             return True
         except KeyError:
             return False
@@ -403,20 +492,24 @@ class ReflectionClient(BaseGrpcClient):
         if not self._is_descriptor_registered(file_descriptor.name):
             logger.debug(f"start {file_descriptor.name} register")
             dependencies = list(file_descriptor.dependency)
-            logger.debug(f"found {len(dependencies)} dependencies for {file_descriptor.name}")
+            logger.debug(
+                f"found {len(dependencies)} dependencies for {file_descriptor.name}"
+            )
             for dep_file_name in dependencies:
-                dep_desc = self._get_file_descriptor_by_name(dep_file_name)
+                dep_desc = self.get_file_descriptor_by_name(dep_file_name)
                 self._register_file_descriptor(dep_desc)
             try:
                 self._desc_pool.Add(file_descriptor)
             except TypeError:
-                logger.debug(f"{file_descriptor.name} already present in pool. Skipping.")
+                logger.debug(
+                    f"{file_descriptor.name} already present in pool. Skipping."
+                )
             logger.debug(f"end {file_descriptor.name} registration complete")
 
     def _is_service_registered(self, service_name):
         try:
-            self._desc_pool.FindServiceByName(service_name)
-            logger.debug(f'{service_name} already registered')
+            self.get_service_descriptor(service_name)
+            logger.debug(f"{service_name} already registered")
             return True
         except KeyError:
             return False
@@ -424,29 +517,49 @@ class ReflectionClient(BaseGrpcClient):
     def register_service(self, service_name):
         if not self._is_service_registered(service_name):
             logger.debug(f"start {service_name} registration")
-            file_descriptor = self._get_file_descriptor_by_symbol(service_name)
+            file_descriptor = self.get_file_descriptor_by_symbol(service_name)
             self._register_file_descriptor(file_descriptor)
             logger.debug(f"{service_name} registration complete")
         super(ReflectionClient, self).register_service(service_name)
 
 
 class StubClient(BaseGrpcClient):
-
-    def __init__(self, endpoint, service_descriptors: List[ServiceDescriptor], symbol_db=None, lazy=False,
-                 descriptor_pool=None, ssl=False, compression=None,
-                 **kwargs):
-        super().__init__(endpoint, symbol_db, descriptor_pool, ssl=ssl, compression=compression, lazy=lazy, **kwargs)
+    def __init__(
+        self,
+        endpoint,
+        service_descriptors: List[ServiceDescriptor],
+        symbol_db=None,
+        lazy=False,
+        descriptor_pool=None,
+        ssl=False,
+        compression=None,
+        **kwargs,
+    ):
+        super().__init__(
+            endpoint,
+            symbol_db,
+            descriptor_pool,
+            ssl=ssl,
+            compression=compression,
+            lazy=lazy,
+            **kwargs,
+        )
         self.service_descriptors = service_descriptors
 
         if not self._lazy:
             self.register_all_service()
 
     def _get_service_names(self):
-        svcs = [x.full_name for x in self.service_descriptors]
+        svcs = [service.full_name for service in self.service_descriptors]
         return svcs
 
 
 class ServiceClient:
+    _method_names: Tuple[str, ...]
+    _methods_meta: Dict[str, MethodMetaData]
+    client: BaseGrpcClient
+    name: str
+
     def __init__(self, client: BaseGrpcClient, service_name: str):
         self.client = client
         self.name = service_name
@@ -462,6 +575,10 @@ class ServiceClient:
     def method_names(self):
         return self._method_names
 
+    @property
+    def methods_meta(self):
+        return self._methods_meta
+
 
 Client = ReflectionClient
 
@@ -472,7 +589,9 @@ def get_by_endpoint(endpoint, service_descriptors=None, **kwargs) -> Client:
     global _cached_clients
     if endpoint not in _cached_clients:
         if service_descriptors:
-            _cached_clients[endpoint] = StubClient(endpoint, service_descriptors=service_descriptors, **kwargs)
+            _cached_clients[endpoint] = StubClient(
+                endpoint, service_descriptors=service_descriptors, **kwargs
+            )
         else:
             _cached_clients[endpoint] = Client(endpoint, **kwargs)
     return _cached_clients[endpoint]

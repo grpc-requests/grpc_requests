@@ -23,8 +23,8 @@ class MetadataClientInterceptor(grpc.UnaryUnaryClientInterceptor):
 
         return continuation(new_details, request)
 
-class AsyncMetadataClientInterceptor(grpc.aio.UnaryUnaryClientInterceptor):
 
+class AsyncMetadataClientInterceptor(grpc.aio.UnaryUnaryClientInterceptor):
     async def intercept_unary_unary(self, continuation, client_call_details, request):
         new_details = grpc.aio.ClientCallDetails(
             client_call_details.method,
