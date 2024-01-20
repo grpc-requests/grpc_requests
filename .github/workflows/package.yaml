@@ -6,8 +6,9 @@ on:
 
 jobs:
   deploy:
-
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write    
 
     steps:
     - uses: actions/checkout@v3
@@ -29,10 +30,8 @@ jobs:
         pytest --cov-report=xml --cov=src/grpc_requests
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+    - name: Build
       run: |
-        python setup.py sdist bdist_wheel
-        twine upload dist/*
+        python setup.py sdist bdist_wheel      
+    - name: Publish package distributions to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1.8.11
