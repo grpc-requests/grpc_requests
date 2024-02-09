@@ -238,6 +238,25 @@ async def test_register_file_descriptors_no_lookup():
 
 
 @pytest.mark.asyncio
+async def test_register_file_descriptors_no_lookup_out_of_order():
+    # Connect to not a real server to make sure we do local lookup
+    client = AsyncClient(
+        "localhost:notaport", descriptor_pool=descriptor_pool.DescriptorPool()
+    )
+    descriptors = [
+        dependency1_pb2.DESCRIPTOR,
+        dependency2_pb2.DESCRIPTOR,
+        dependencies_pb2.DESCRIPTOR,
+    ]
+    file_descriptors = []
+    for descriptor in descriptors:
+        proto = descriptor_pb2.FileDescriptorProto()
+        descriptor.CopyToProto(proto)
+        file_descriptors.append(proto)
+    await client.register_file_descriptors(file_descriptors)
+
+
+@pytest.mark.asyncio
 async def test_register_file_descriptors_incomplete_dependencies():
     # Connect to not a real server to make sure we do local lookup
     client = AsyncClient(
