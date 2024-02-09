@@ -218,6 +218,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         descriptor_pool=None,
         ssl=False,
         compression=None,
+        skip_check_method_available=False,
         **kwargs,
     ):
         super().__init__(
@@ -230,6 +231,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         )
         self._service_names: list = None
         self.has_server_registered = False
+        self._skip_check_method_available = skip_check_method_available
         self._services_module_name = {}
         self._service_methods_meta: Dict[str, Dict[str, MethodMetaData]] = {}
 
@@ -358,29 +360,34 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
             return method_meta.method_type.response_parser(result)
 
     async def request(self, service, method, request=None, raw_output=False, **kwargs):
-        await self.check_method_available(service, method)
+        if not self._skip_check_method_available:
+            await self.check_method_available(service, method)
         return await self._request(service, method, request, raw_output, **kwargs)
 
     async def unary_unary(
         self, service, method, request=None, raw_output=False, **kwargs
     ):
-        await self.check_method_available(service, method, MethodType.UNARY_UNARY)
+        if not self._skip_check_method_available:
+            await self.check_method_available(service, method, MethodType.UNARY_UNARY)
         return await self._request(service, method, request, raw_output, **kwargs)
 
     async def unary_stream(
         self, service, method, request=None, raw_output=False, **kwargs
     ):
-        await self.check_method_available(service, method, MethodType.UNARY_STREAM)
+        if not self._skip_check_method_available:
+            await self.check_method_available(service, method, MethodType.UNARY_STREAM)
         return await self._request(service, method, request, raw_output, **kwargs)
 
     async def stream_unary(self, service, method, requests, raw_output=False, **kwargs):
-        await self.check_method_available(service, method, MethodType.STREAM_UNARY)
+        if not self._skip_check_method_available:
+            await self.check_method_available(service, method, MethodType.STREAM_UNARY)
         return await self._request(service, method, requests, raw_output, **kwargs)
 
     async def stream_stream(
         self, service, method, requests, raw_output=False, **kwargs
     ):
-        await self.check_method_available(service, method, MethodType.STREAM_STREAM)
+        if not self._skip_check_method_available:
+            await self.check_method_available(service, method, MethodType.STREAM_STREAM)
         return await self._request(service, method, requests, raw_output, **kwargs)
 
     def get_service_descriptor(self, service):
@@ -448,17 +455,21 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
         services = tuple([s.name for s in resp.list_services_response.service])
         return services
 
-    async def get_file_descriptor_by_name(self, name):
+    async def get_file_descriptors_by_name(self, name):
         request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)
         result = await self._reflection_single_request(request)
-        proto = result.file_descriptor_response.file_descriptor_proto[0]
-        return descriptor_pb2.FileDescriptorProto.FromString(proto)
+        return [
+            descriptor_pb2.FileDescriptorProto.FromString(proto)
+            for proto in result.file_descriptor_response.file_descriptor_proto
+        ]
 
-    async def get_file_descriptor_by_symbol(self, symbol):
+    async def get_file_descriptors_by_symbol(self, symbol):
         request = reflection_pb2.ServerReflectionRequest(file_containing_symbol=symbol)
         result = await self._reflection_single_request(request)
-        proto = result.file_descriptor_response.file_descriptor_proto[0]
-        return descriptor_pb2.FileDescriptorProto.FromString(proto)
+        return [
+            descriptor_pb2.FileDescriptorProto.FromString(proto)
+            for proto in result.file_descriptor_response.file_descriptor_proto
+        ]
 
     def _is_descriptor_registered(self, filename):
         try:
@@ -468,7 +479,14 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
         except KeyError:
             return False
 
-    async def _register_file_descriptor(self, file_descriptor):
+    # In practice it always seems like descriptors are returned in an order that makes sense for dependency
+    # registration, but i can't find a guarantee in the spec
+    # Because of this, go one by one and register, using the other returned descriptors as possible dependencies
+    async def register_file_descriptors(self, file_descriptors):
+        for file_descriptor in file_descriptors:
+            await self._register_file_descriptor(file_descriptor, file_descriptors)
+
+    async def _register_file_descriptor(self, file_descriptor, file_descriptors):
         if not self._is_descriptor_registered(file_descriptor.name):
             logger.debug(f"start {file_descriptor.name} register")
             dependencies = list(file_descriptor.dependency)
@@ -477,8 +495,20 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
             )
             for dep_file_name in dependencies:
                 if not self._is_descriptor_registered(dep_file_name):
-                    dep_desc = await self.get_file_descriptor_by_name(dep_file_name)
-                    await self._register_file_descriptor(dep_desc)
+                    # First look for dependency in the passed in descriptors
+                    dep_desc = next(
+                        (x for x in file_descriptors if x.name == dep_file_name), None
+                    )
+                    # Otherwise get it from the client
+                    if not dep_desc:
+                        dep_descs = await self.get_file_descriptors_by_name(
+                            dep_file_name
+                        )
+                        dep_desc = dep_descs[0]
+                        if len(dep_descs) > 1:
+                            file_descriptors += dep_descs[1:]
+                    # Remove the one we are looking for and use the rest as dependencies
+                    await self._register_file_descriptor(dep_desc, file_descriptors)
             try:
                 self._desc_pool.Add(file_descriptor)
             except TypeError:
@@ -498,8 +528,8 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
     async def register_service(self, service_name):
         if not self._is_service_registered(service_name):
             logger.debug(f"start {service_name} registration")
-            file_descriptor = await self.get_file_descriptor_by_symbol(service_name)
-            await self._register_file_descriptor(file_descriptor)
+            file_descriptors = await self.get_file_descriptors_by_symbol(service_name)
+            await self.register_file_descriptors(file_descriptors)
             logger.debug(f"{service_name} registration complete")
         await super(ReflectionAsyncClient, self).register_service(service_name)
 
