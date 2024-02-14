@@ -218,6 +218,7 @@ class BaseGrpcClient(BaseClient):
         lazy=False,
         ssl=False,
         compression=None,
+        skip_check_method_available=False,
         **kwargs,
     ):
         super().__init__(
@@ -231,6 +232,7 @@ class BaseGrpcClient(BaseClient):
         self._service_names: list = None
         self._lazy = lazy
         self.has_server_registered = False
+        self._skip_check_method_available = skip_check_method_available
         self._services_module_name = {}
         self._service_methods_meta: Dict[str, Dict[str, MethodMetaData]] = {}
 
@@ -243,6 +245,8 @@ class BaseGrpcClient(BaseClient):
         raise NotImplementedError()
 
     def check_method_available(self, service, method, method_type: MethodType = None):
+        if self._skip_check_method_available:
+            return True
         if not self.has_server_registered:
             self.register_all_service()
         logger.debug(service)
@@ -480,6 +484,22 @@ class ReflectionClient(BaseGrpcClient):
         proto = result.file_descriptor_response.file_descriptor_proto[0]
         return descriptor_pb2.FileDescriptorProto.FromString(proto)
 
+    def get_file_descriptors_by_name(self, name):
+        request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)
+        result = self._reflection_single_request(request)
+        return [
+            descriptor_pb2.FileDescriptorProto.FromString(proto)
+            for proto in result.file_descriptor_response.file_descriptor_proto
+        ]
+
+    def get_file_descriptors_by_symbol(self, symbol):
+        request = reflection_pb2.ServerReflectionRequest(file_containing_symbol=symbol)
+        result = self._reflection_single_request(request)
+        return [
+            descriptor_pb2.FileDescriptorProto.FromString(proto)
+            for proto in result.file_descriptor_response.file_descriptor_proto
+        ]
+
     def _is_descriptor_registered(self, filename):
         try:
             self._desc_pool.FindFileByName(filename)
@@ -488,7 +508,14 @@ class ReflectionClient(BaseGrpcClient):
         except KeyError:
             return False
 
-    def _register_file_descriptor(self, file_descriptor):
+    # In practice it always seems like descriptors are returned in an order that makes sense for dependency
+    # registration, but i can't find a guarantee in the spec
+    # Because of this, go one by one and register, using the other returned descriptors as possible dependencies
+    def register_file_descriptors(self, file_descriptors):
+        for file_descriptor in file_descriptors:
+            self._register_file_descriptor(file_descriptor, file_descriptors)
+
+    def _register_file_descriptor(self, file_descriptor, file_descriptors):
         if not self._is_descriptor_registered(file_descriptor.name):
             logger.debug(f"start {file_descriptor.name} register")
             dependencies = list(file_descriptor.dependency)
@@ -496,15 +523,26 @@ class ReflectionClient(BaseGrpcClient):
                 f"found {len(dependencies)} dependencies for {file_descriptor.name}"
             )
             for dep_file_name in dependencies:
-                dep_desc = self.get_file_descriptor_by_name(dep_file_name)
-                self._register_file_descriptor(dep_desc)
+                if not self._is_descriptor_registered(dep_file_name):
+                    # First look for dependency in the passed in descriptors
+                    dep_desc = next(
+                        (x for x in file_descriptors if x.name == dep_file_name), None
+                    )
+                    # Otherwise get it from the client
+                    if not dep_desc:
+                        dep_descs = self.get_file_descriptors_by_name(dep_file_name)
+                        dep_desc = dep_descs[0]
+                        if len(dep_descs) > 1:
+                            file_descriptors += dep_descs[1:]
+                    # Remove the one we are looking for and use the rest as dependencies
+                    self._register_file_descriptor(dep_desc, file_descriptors)
             try:
                 self._desc_pool.Add(file_descriptor)
             except TypeError:
                 logger.debug(
                     f"{file_descriptor.name} already present in pool. Skipping."
                 )
-            logger.debug(f"end {file_descriptor.name} registration complete")
+            logger.debug(f"{file_descriptor.name} registration complete")
 
     def _is_service_registered(self, service_name):
         try:
@@ -517,8 +555,8 @@ class ReflectionClient(BaseGrpcClient):
     def register_service(self, service_name):
         if not self._is_service_registered(service_name):
             logger.debug(f"start {service_name} registration")
-            file_descriptor = self.get_file_descriptor_by_symbol(service_name)
-            self._register_file_descriptor(file_descriptor)
+            file_descriptors = self.get_file_descriptors_by_symbol(service_name)
+            self.register_file_descriptors(file_descriptors)
             logger.debug(f"{service_name} registration complete")
         super(ReflectionClient, self).register_service(service_name)
 
