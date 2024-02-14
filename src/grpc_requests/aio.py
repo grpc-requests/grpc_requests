@@ -455,6 +455,18 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
         services = tuple([s.name for s in resp.list_services_response.service])
         return services
 
+    async def get_file_descriptor_by_name(self, name):
+        request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)
+        result = await self._reflection_single_request(request)
+        proto = result.file_descriptor_response.file_descriptor_proto[0]
+        return descriptor_pb2.FileDescriptorProto.FromString(proto)
+
+    async def get_file_descriptor_by_symbol(self, symbol):
+        request = reflection_pb2.ServerReflectionRequest(file_containing_symbol=symbol)
+        result = await self._reflection_single_request(request)
+        proto = result.file_descriptor_response.file_descriptor_proto[0]
+        return descriptor_pb2.FileDescriptorProto.FromString(proto)
+
     async def get_file_descriptors_by_name(self, name):
         request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)
         result = await self._reflection_single_request(request)
