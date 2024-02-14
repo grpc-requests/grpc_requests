@@ -246,6 +246,8 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
     async def check_method_available(
         self, service, method, method_type: MethodType = None
     ):
+        if self._skip_check_method_available:
+            return True
         if not self.has_server_registered:
             await self.register_all_service()
         methods_meta = self._service_methods_meta.get(service)
@@ -360,34 +362,29 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
             return method_meta.method_type.response_parser(result)
 
     async def request(self, service, method, request=None, raw_output=False, **kwargs):
-        if not self._skip_check_method_available:
-            await self.check_method_available(service, method)
+        await self.check_method_available(service, method)
         return await self._request(service, method, request, raw_output, **kwargs)
 
     async def unary_unary(
         self, service, method, request=None, raw_output=False, **kwargs
     ):
-        if not self._skip_check_method_available:
-            await self.check_method_available(service, method, MethodType.UNARY_UNARY)
+        await self.check_method_available(service, method, MethodType.UNARY_UNARY)
         return await self._request(service, method, request, raw_output, **kwargs)
 
     async def unary_stream(
         self, service, method, request=None, raw_output=False, **kwargs
     ):
-        if not self._skip_check_method_available:
-            await self.check_method_available(service, method, MethodType.UNARY_STREAM)
+        await self.check_method_available(service, method, MethodType.UNARY_STREAM)
         return await self._request(service, method, request, raw_output, **kwargs)
 
     async def stream_unary(self, service, method, requests, raw_output=False, **kwargs):
-        if not self._skip_check_method_available:
-            await self.check_method_available(service, method, MethodType.STREAM_UNARY)
+        await self.check_method_available(service, method, MethodType.STREAM_UNARY)
         return await self._request(service, method, requests, raw_output, **kwargs)
 
     async def stream_stream(
         self, service, method, requests, raw_output=False, **kwargs
     ):
-        if not self._skip_check_method_available:
-            await self.check_method_available(service, method, MethodType.STREAM_STREAM)
+        await self.check_method_available(service, method, MethodType.STREAM_STREAM)
         return await self._request(service, method, requests, raw_output, **kwargs)
 
     def get_service_descriptor(self, service):
