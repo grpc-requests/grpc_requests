@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Added
 
 - Add methods to return FileDescriptors and their transistive dependencies as requested by either a name or symbol
+- Add option to skip automatic checking of method availability
 
 ## Deprecated
 
