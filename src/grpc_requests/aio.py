@@ -457,6 +457,7 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
         "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_name() instead.",
         DeprecationWarning,
     )
+
     async def get_file_descriptor_by_name(self, name):
         request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)
         result = await self._reflection_single_request(request)
@@ -467,6 +468,7 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
         "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_symbol() instead.",
         DeprecationWarning,
     )
+
     async def get_file_descriptor_by_symbol(self, symbol):
         request = reflection_pb2.ServerReflectionRequest(file_containing_symbol=symbol)
         result = await self._reflection_single_request(request)

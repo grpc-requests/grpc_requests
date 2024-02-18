@@ -393,7 +393,7 @@ class BaseGrpcClient(BaseClient):
     def describe_method_request(self, service, method):
         warnings.warn(
             "This function is deprecated, and will be removed in the 0.1.17 release. Use describe_descriptor() instead.",
-        DeprecationWarning,
+            DeprecationWarning,
         )
         return describe_request(self.get_method_descriptor(service, method))
 
@@ -476,6 +476,7 @@ class ReflectionClient(BaseGrpcClient):
         "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_name() instead.",
         DeprecationWarning,
     )
+
     def get_file_descriptor_by_name(self, name):
         request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)
         result = self._reflection_single_request(request)
@@ -486,6 +487,7 @@ class ReflectionClient(BaseGrpcClient):
         "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_symbol() instead.",
         DeprecationWarning,
     )
+
     def get_file_descriptor_by_symbol(self, symbol):
         request = reflection_pb2.ServerReflectionRequest(file_containing_symbol=symbol)
         result = self._reflection_single_request(request)
