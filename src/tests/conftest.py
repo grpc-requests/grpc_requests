@@ -4,6 +4,9 @@ import time
 
 from test_servers.helloworld.helloworld_server import HelloWorldServer
 from test_servers.client_tester.client_tester_server import ClientTesterServer
+from test_servers.dependencies.dependencies_server import (
+    HelloWorldServer as DependencyServer,
+)
 
 
 def helloworld_server_starter():
@@ -13,6 +16,11 @@ def helloworld_server_starter():
 
 def client_tester_server_starter():
     server = ClientTesterServer("50052")
+    server.serve()
+
+
+def dependency_server_starter():
+    server = DependencyServer("50053")
     server.serve()
 
 
@@ -36,3 +44,14 @@ def client_tester_server():
     time.sleep(1)
     yield
     client_tester_server_process.terminate()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def dependency_server():
+    dependency_server_process = multiprocessing.Process(
+        target=dependency_server_starter
+    )
+    dependency_server_process.start()
+    time.sleep(1)
+    yield
+    dependency_server_process.terminate()

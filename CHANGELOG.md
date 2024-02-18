@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.15](https://github.com/wesky93/grpc_requests/releases/tag/v0.1.15) - 2024-02-17
+
+## Added
+
+- Add methods to return FileDescriptors and their transistive dependencies as requested by either a name or symbol
+
+## Deprecated
+
+- Due to the possibility of transient dependencies being missed, or other name or symbol collisions, methods to access singular FileDescriptors are deprecated and will be removed in version 0.1.17
+- The method to retrieve fields of a method's descriptor input type alone will be removed in version 0.1.17
+
 ## [0.1.14](https://github.com/wesky93/grpc_requests/releases/tag/v0.1.14) - 2024-01-06
 
 ## Added
