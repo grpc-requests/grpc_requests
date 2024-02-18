@@ -7,4 +7,4 @@ from .aio import (
 )
 from .client import Client, ReflectionClient, StubClient, get_by_endpoint
 
-__version__ = "0.1.14"
+__version__ = "0.1.15"
