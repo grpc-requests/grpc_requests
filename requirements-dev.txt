@@ -8,3 +8,5 @@ pytest-asyncio>=0.15.1
 aiounittest>=1.4.2
 grpc-interceptor>=0.15.4
 ruff>=0.1.7
+grpcio-tools>=1.60.0
+grpcio-reflection>=1.60.0 # Tests require new enough reflection that supports transitive dependencies

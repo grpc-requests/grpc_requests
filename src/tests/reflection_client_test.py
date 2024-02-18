@@ -4,8 +4,15 @@ import pytest
 from grpc_requests.client import Client, MethodType
 from google.protobuf.json_format import ParseError
 from google.protobuf.descriptor import MethodDescriptor
+import grpc
 
 from tests.common import MetadataClientInterceptor
+from tests.test_servers.dependencies import (
+    dependencies_pb2,
+    dependency1_pb2,
+    dependency2_pb2,
+)
+from google.protobuf import descriptor_pool, descriptor_pb2
 
 """
 Test cases for reflection based client
@@ -221,3 +228,79 @@ def test_get_file_descriptor_by_symbol(helloworld_reflection_client):
     assert file_descriptor.name == "helloworld.proto"
     assert file_descriptor.package == "helloworld"
     assert file_descriptor.syntax == "proto3"
+
+
+def test_get_file_descriptors_by_name():
+    client = Client("localhost:50053", descriptor_pool=descriptor_pool.DescriptorPool())
+    file_descriptor = client.get_file_descriptors_by_name("dependencies.proto")
+    assert file_descriptor[0].name == "dependencies.proto"
+    assert file_descriptor[1].name == "dependency1.proto"
+    assert file_descriptor[2].name == "dependency2.proto"
+
+
+def test_get_file_descriptors_by_symbol():
+    client = Client("localhost:50053", descriptor_pool=descriptor_pool.DescriptorPool())
+    file_descriptor = client.get_file_descriptors_by_symbol("dependencies.Greeter")
+    assert file_descriptor[0].name == "dependencies.proto"
+    assert file_descriptor[1].name == "dependency1.proto"
+    assert file_descriptor[2].name == "dependency2.proto"
+
+
+def test_register_file_descriptors_no_lookup():
+    # Connect to not a real server to make sure we do local lookup
+    client = Client(
+        "localhost:notaport",
+        lazy=True,
+        descriptor_pool=descriptor_pool.DescriptorPool(),
+    )
+    descriptors = [
+        dependencies_pb2.DESCRIPTOR,
+        dependency1_pb2.DESCRIPTOR,
+        dependency2_pb2.DESCRIPTOR,
+    ]
+    file_descriptors = []
+    for descriptor in descriptors:
+        proto = descriptor_pb2.FileDescriptorProto()
+        descriptor.CopyToProto(proto)
+        file_descriptors.append(proto)
+    client.register_file_descriptors(file_descriptors)
+
+
+def test_register_file_descriptors_no_lookup_out_of_order():
+    # Connect to not a real server to make sure we do local lookup
+    client = Client(
+        "localhost:notaport",
+        lazy=True,
+        descriptor_pool=descriptor_pool.DescriptorPool(),
+    )
+    descriptors = [
+        dependency1_pb2.DESCRIPTOR,
+        dependency2_pb2.DESCRIPTOR,
+        dependencies_pb2.DESCRIPTOR,
+    ]
+    file_descriptors = []
+    for descriptor in descriptors:
+        proto = descriptor_pb2.FileDescriptorProto()
+        descriptor.CopyToProto(proto)
+        file_descriptors.append(proto)
+    client.register_file_descriptors(file_descriptors)
+
+
+def test_register_file_descriptors_incomplete_dependencies():
+    # Connect to not a real server to make sure we do local lookup
+    client = Client(
+        "localhost:notaport",
+        lazy=True,
+        descriptor_pool=descriptor_pool.DescriptorPool(),
+    )
+    descriptors = [
+        dependencies_pb2.DESCRIPTOR,
+        dependency1_pb2.DESCRIPTOR,
+    ]
+    file_descriptors = []
+    for descriptor in descriptors:
+        proto = descriptor_pb2.FileDescriptorProto()
+        descriptor.CopyToProto(proto)
+        file_descriptors.append(proto)
+    with pytest.raises(grpc.RpcError):
+        client.register_file_descriptors(file_descriptors)
