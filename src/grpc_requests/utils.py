@@ -45,7 +45,7 @@ def describe_request(method_descriptor: MethodDescriptor) -> dict:
     :return: dict - a mapping of field names to their types
     """
     warnings.warn(
-        "This function is deprecated, and will be removed in a future release. Use describe_descriptor() instead.",
+        "This function is deprecated, and will be removed in the 0.1.17 release. Use describe_descriptor() instead.",
         DeprecationWarning,
     )
     description = {}
