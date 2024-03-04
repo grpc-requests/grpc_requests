@@ -453,23 +453,21 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
         services = tuple([s.name for s in resp.list_services_response.service])
         return services
 
-    warnings.warn(
-        "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_name() instead.",
-        DeprecationWarning,
-    )
-
     async def get_file_descriptor_by_name(self, name):
+        warnings.warn(
+            "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_name() instead.",
+            DeprecationWarning,
+        )
         request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)
         result = await self._reflection_single_request(request)
         proto = result.file_descriptor_response.file_descriptor_proto[0]
         return descriptor_pb2.FileDescriptorProto.FromString(proto)
 
-    warnings.warn(
-        "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_symbol() instead.",
-        DeprecationWarning,
-    )
-
     async def get_file_descriptor_by_symbol(self, symbol):
+        warnings.warn(
+            "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_symbol() instead.",
+            DeprecationWarning,
+        )
         request = reflection_pb2.ServerReflectionRequest(file_containing_symbol=symbol)
         result = await self._reflection_single_request(request)
         proto = result.file_descriptor_response.file_descriptor_proto[0]
@@ -499,10 +497,15 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
         except KeyError:
             return False
 
-    # Iterate over descriptors for registration, including returned descriptors as possible dependencies.
-    # This is necessary as while in practice descriptors appear to be returned in an order that works for dependency
-    # registration, this is not guaranteed in the reflection specification.
-    async def register_file_descriptors(self, file_descriptors):
+    async def register_file_descriptors(
+        self, file_descriptors: List[descriptor_pb2.FileDescriptorProto]
+    ):
+        """
+        Iterate over descriptors for registration, including returned descriptors as possible dependencies.
+        This is necessary as while in practice descriptors appear to be returned in an order that works for dependency
+        registration, this is not guaranteed in the reflection specification.
+        :param file_descriptors: List of FileDescriptorProto to register
+        """
         for file_descriptor in file_descriptors:
             await self._register_file_descriptor(file_descriptor, file_descriptors)
 

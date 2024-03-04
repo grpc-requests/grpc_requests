@@ -147,6 +147,23 @@ helloworldFileDescriptors = client.get_file_descriptors_by_name("helloworld.prot
 greeterServiceFileDescriptors = client.get_file_descriptors_by_symbol("helloworld.Greeter")
 ```
 
+### Registering Descriptors Directly
+
+In the event a message is utilized by a service, but not directly referenced
+by the typing in the reflected service (i.e. a specific type of metadata served
+by a service implementing a [longrunning operation](https://google.aip.dev/151)), that message can
+be added directly as follows:
+
+```python
+from grpc_requests.client import Client
+
+from grpc_requests.client import Client
+
+client = Client("localhost:50051")
+
+hiddenMessageFileDescriptors = client.get_file_descriptors_by_name("hiddenMessage.proto")
+```
+
 ### Method Metadata
 
 grpc_requests utilizes MethodMetaData objects to organize the methods of the
