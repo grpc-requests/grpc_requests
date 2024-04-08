@@ -12,6 +12,8 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
+    Type,
+    Union,
 )
 
 import grpc
@@ -129,10 +131,14 @@ class BaseAsyncClient:
         return self._channel
 
     @classmethod
-    def get_by_endpoint(cls, endpoint, **kwargs):
+    async def get_by_endpoint(
+            cls: Union[Type["ReflectionAsyncClient"], Type["BaseAsyncGrpcClient"]],
+            endpoint: str,
+            **kwargs,
+    ):
         global _cached_clients
         if endpoint not in _cached_clients:
-            _cached_clients[endpoint] = cls(endpoint, **kwargs)
+            _cached_clients[endpoint] = await cls.create(endpoint, lazy=False, **kwargs)
         return _cached_clients[endpoint]
 
     async def __aenter__(self):
@@ -267,14 +273,15 @@ MethodTypeMatch: Dict[Tuple[IS_REQUEST_STREAM, IS_RESPONSE_STREAM], MethodType] 
 
 class BaseAsyncGrpcClient(BaseAsyncClient):
     def __init__(
-        self,
-        endpoint,
-        symbol_db=None,
-        descriptor_pool=None,
-        ssl=False,
-        compression=None,
-        skip_check_method_available=False,
-        message_parsers: MessageParsersProtocol = MessageParsers(),
+            self,
+            endpoint,
+            symbol_db=None,
+            descriptor_pool=None,
+            lazy=True,
+            ssl=False,
+            compression=None,
+            skip_check_method_available=False,
+            message_parsers: MessageParsersProtocol = MessageParsers(),
         **kwargs,
     ):
         super().__init__(
@@ -286,6 +293,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
             **kwargs,
         )
         self._service_names: list = None
+        self._lazy = lazy
         self.has_server_registered = False
         self._skip_check_method_available = skip_check_method_available
         self._message_parsers = message_parsers
@@ -296,6 +304,12 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         self._unary_stream_handler = {}
         self._stream_unary_handler = {}
         self._stream_stream_handler = {}
+
+    @classmethod
+    async def create(cls, endpoint: str, **kwargs) -> "BaseAsyncGrpcClient":
+        self = cls(endpoint, lazy=False, **kwargs)
+        await self.register_all_service()
+        return self
 
     async def _get_service_names(self):
         raise NotImplementedError()
@@ -387,8 +401,9 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
 
     async def get_methods_meta(self, service_name: str):
         if (
-            service_name in await self.service_names()
-            and service_name not in self._service_methods_meta
+                self._lazy
+                and service_name in await self.service_names()
+                and service_name not in self._service_methods_meta
         ):
             await self.register_service(service_name)
 
@@ -476,13 +491,14 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
 
 class ReflectionAsyncClient(BaseAsyncGrpcClient):
     def __init__(
-        self,
-        endpoint,
-        symbol_db=None,
-        descriptor_pool=None,
-        ssl=False,
-        compression=None,
-        message_parsers: MessageParsersProtocol = MessageParsers(),
+            self,
+            endpoint,
+            symbol_db=None,
+            descriptor_pool=None,
+            lazy=True,
+            ssl=False,
+            compression=None,
+            message_parsers: MessageParsersProtocol = MessageParsers(),
         **kwargs,
     ):
         super().__init__(
@@ -490,11 +506,18 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
             symbol_db,
             descriptor_pool,
             ssl=ssl,
+            lazy=lazy,
             compression=compression,
             message_parsers=message_parsers,
             **kwargs,
         )
         self.reflection_stub = reflection_pb2_grpc.ServerReflectionStub(self.channel)
+
+    @classmethod
+    async def create(cls, endpoint: str, **kwargs) -> "ReflectionAsyncClient":
+        self = cls(endpoint, **kwargs)
+        await self.register_all_service()
+        return self
 
     def _reflection_request(self, *requests):
         responses = self.reflection_stub.ServerReflectionInfo((r for r in requests))
@@ -596,14 +619,15 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
 
 class StubAsyncClient(BaseAsyncGrpcClient):
     def __init__(
-        self,
-        endpoint,
-        service_descriptors: List[ServiceDescriptor],
-        symbol_db=None,
-        descriptor_pool=None,
-        ssl=False,
-        compression=None,
-        **kwargs,
+            self,
+            endpoint,
+            service_descriptors: List[ServiceDescriptor],
+            symbol_db=None,
+            lazy=False,
+            descriptor_pool=None,
+            ssl=False,
+            compression=None,
+            **kwargs,
     ):
         super().__init__(
             endpoint,
@@ -611,6 +635,7 @@ class StubAsyncClient(BaseAsyncGrpcClient):
             descriptor_pool,
             ssl=ssl,
             compression=compression,
+            lazy=lazy,
             **kwargs,
         )
         self.service_descriptors = service_descriptors
