@@ -11,7 +11,6 @@ from typing import (
     List,
     NamedTuple,
     Optional,
-    Protocol,
     Tuple,
     TypeVar,
 )
@@ -41,11 +40,13 @@ logger = logging.getLogger(__name__)
 
 if sys.version_info >= (3, 8):
     import importlib.metadata
+    from typing import Protocol
 
     def get_metadata(package_name: str):
         return importlib.metadata.version(package_name)
 else:
     import pkg_resources
+    from typing_extensions import Protocol
 
     def get_metadata(package_name: str):
         return pkg_resources.get_distribution(package_name).version
