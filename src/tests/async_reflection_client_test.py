@@ -271,7 +271,7 @@ async def test_register_file_descriptors_incomplete_dependencies():
 
 
 @pytest.mark.asyncio
-async def test_unary_unary_override_method_meta():
+async def test_unary_unary_defaults():
     client = AsyncClient(
         "localhost:50054",
         descriptor_pool=descriptor_pool.DescriptorPool(),
@@ -286,3 +286,89 @@ async def test_unary_unary_override_method_meta():
     response = await greeter_service.SayHello({"name": "sinsky"})
     assert isinstance(response, dict)
     assert response == {"message": ""}
+
+
+@pytest.mark.asyncio
+async def test_stream_unary_defaults():
+    client = AsyncClient(
+        "localhost:50054",
+        descriptor_pool=descriptor_pool.DescriptorPool(),
+    )
+    greeter_service = await client.service("helloworld.Greeter")
+    name_list = ["sinsky", "viridianforge", "jack", "harry"]
+    response = await greeter_service.HelloEveryone(
+        [{"name": name} for name in name_list]
+    )
+    assert isinstance(response, dict)
+    assert response == {}
+
+
+@pytest.mark.asyncio
+async def test_stream_unary_empty():
+    client = AsyncClient(
+        "localhost:50054",
+        descriptor_pool=descriptor_pool.DescriptorPool(),
+        message_parsers=CustomArgumentParsers(
+            message_to_dict_kwargs={
+                "preserving_proto_field_name": True,
+                "including_default_value_fields": True,
+            }
+        ),
+    )
+    greeter_service = await client.service("helloworld.Greeter")
+    name_list = ["sinsky", "viridianforge", "jack", "harry"]
+    response = await greeter_service.HelloEveryone(
+        [{"name": name} for name in name_list]
+    )
+    assert isinstance(response, dict)
+    assert response == {"message": ""}
+
+
+@pytest.mark.asyncio
+async def test_stream_stream_empty():
+    client = AsyncClient(
+        "localhost:50054",
+        descriptor_pool=descriptor_pool.DescriptorPool(),
+        message_parsers=CustomArgumentParsers(
+            message_to_dict_kwargs={
+                "preserving_proto_field_name": True,
+                "including_default_value_fields": True,
+            }
+        ),
+    )
+    greeter_service = await client.service("helloworld.Greeter")
+    name_list = ["sinsky", "viridianforge", "jack", "harry"]
+    responses = [
+        x
+        async for x in await greeter_service.SayHelloOneByOne(
+            [{"name": name} for name in name_list]
+        )
+    ]
+    assert all(isinstance(response, dict) for response in responses)
+    for response, name in zip(responses, name_list):
+        assert response == {"message": ""}
+
+
+@pytest.mark.asyncio
+async def test_unary_stream_empty():
+    client = AsyncClient(
+        "localhost:50051",
+        descriptor_pool=descriptor_pool.DescriptorPool(),
+        message_parsers=CustomArgumentParsers(
+            message_to_dict_kwargs={
+                "preserving_proto_field_name": True,
+                "including_default_value_fields": True,
+            }
+        ),
+    )
+    greeter_service = await client.service("helloworld.Greeter")
+    name_list = ["sinsky", "viridianforge", "jack", "harry"]
+    responses = [
+        x
+        async for x in await greeter_service.SayHelloGroup(
+            [{"name": name} for name in name_list]
+        )
+    ]
+    assert all(isinstance(response, dict) for response in responses)
+    for response, name in zip(responses, name_list):
+        assert response == {"message": ""}
