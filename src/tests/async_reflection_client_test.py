@@ -1,17 +1,16 @@
 import logging
-import pytest
 
-from grpc_requests.aio import AsyncClient, MethodType
-from google.protobuf.json_format import ParseError
 import grpc.aio
-
+import pytest
+from google.protobuf import descriptor_pb2, descriptor_pool
+from google.protobuf.json_format import ParseError
+from grpc_requests.aio import AsyncClient, CustomArgumentParsers, MethodType
 from tests.common import AsyncMetadataClientInterceptor
 from tests.test_servers.dependencies import (
     dependencies_pb2,
     dependency1_pb2,
     dependency2_pb2,
 )
-from google.protobuf import descriptor_pool, descriptor_pb2
 
 """
 Test cases for async reflection based client
@@ -269,3 +268,21 @@ async def test_register_file_descriptors_incomplete_dependencies():
         file_descriptors.append(proto)
     with pytest.raises(grpc.aio._call.AioRpcError):
         await client.register_file_descriptors(file_descriptors)
+
+
+@pytest.mark.asyncio
+async def test_unary_unary_override_method_meta():
+    client = AsyncClient(
+        "localhost:50054",
+        descriptor_pool=descriptor_pool.DescriptorPool(),
+        message_parsers=CustomArgumentParsers(
+            message_to_dict_kwargs={
+                "preserving_proto_field_name": True,
+                "including_default_value_fields": True,
+            }
+        ),
+    )
+    greeter_service = await client.service("helloworld.Greeter")
+    response = await greeter_service.SayHello({"name": "sinsky"})
+    assert isinstance(response, dict)
+    assert response == {"message": ""}
