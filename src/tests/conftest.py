@@ -1,12 +1,13 @@
 import multiprocessing
-import pytest
 import time
 
-from test_servers.helloworld.helloworld_server import HelloWorldServer
+import pytest
 from test_servers.client_tester.client_tester_server import ClientTesterServer
 from test_servers.dependencies.dependencies_server import (
     HelloWorldServer as DependencyServer,
 )
+from test_servers.helloworld.helloworld_server import HelloWorldServer
+from tests.test_servers.helloworld.helloworld_server import EmptyGreeter
 
 
 def helloworld_server_starter():
@@ -21,6 +22,11 @@ def client_tester_server_starter():
 
 def dependency_server_starter():
     server = DependencyServer("50053")
+    server.serve()
+
+
+def helloworld_empty_server_starter():
+    server = HelloWorldServer("50054", servicer=EmptyGreeter())
     server.serve()
 
 
@@ -55,3 +61,14 @@ def dependency_server():
     time.sleep(1)
     yield
     dependency_server_process.terminate()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def helloworld_empty_server():
+    helloworld_empty_server_process = multiprocessing.Process(
+        target=helloworld_empty_server_starter
+    )
+    helloworld_empty_server_process.start()
+    time.sleep(1)
+    yield
+    helloworld_empty_server_process.terminate()
