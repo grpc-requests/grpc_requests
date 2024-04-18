@@ -21,6 +21,7 @@ Test cases for async reflection based client
 """
 
 logger = logging.getLogger("name")
+reflection_service_name = 'grpc.reflection.v1alpha.ServerReflection'
 
 
 @pytest.mark.asyncio
@@ -361,18 +362,51 @@ async def test_unary_stream_empty():
 
 
 @pytest.mark.asyncio
-async def test_all_services_not_registered_when_using_lazy_client():
+async def test_services_are_not_registered_when_using_lazy_client():
     client = AsyncClient("localhost:50051")
-    service_name = 'grpc.reflection.v1alpha.ServerReflection'
-    with pytest.raises(KeyError, match=service_name):
-        client.get_method_meta(service_name, 'ServerReflectionInfo')
+    with pytest.raises(KeyError, match=reflection_service_name):
+        await client.get_method_meta(reflection_service_name, 'ServerReflectionInfo')
 
 
 @pytest.mark.asyncio
-async def test_all_services_registered_when_using_non_lazy_client():
-    client = await AsyncClient.get_by_endpoint("localhost:50051")
-    response = client.get_method_meta('grpc.reflection.v1alpha.ServerReflection', 'ServerReflectionInfo')
+async def test_can_get_method_meta_for_reflection_service_when_using_lazy_client():
+    client = AsyncClient("localhost:50051")
+    response = await client.get_method_meta(reflection_service_name, 'ServerReflectionInfo')
     assert isinstance(response, MethodMetaData)
     assert response.input_type == reflection_pb2.ServerReflectionRequest
     assert response.output_type == reflection_pb2.ServerReflectionResponse
     assert response.method_type == MethodType.STREAM_STREAM
+
+
+@pytest.mark.asyncio
+async def test_can_get_method_meta_for_reflection_service_when_using_non_lazy_client():
+    client = AsyncClient("localhost:50051", lazy=False)
+    response = await client.get_method_meta(reflection_service_name, 'ServerReflectionInfo')
+    assert isinstance(response, MethodMetaData)
+    assert response.input_type == reflection_pb2.ServerReflectionRequest
+    assert response.output_type == reflection_pb2.ServerReflectionResponse
+    assert response.method_type == MethodType.STREAM_STREAM
+
+
+@pytest.mark.asyncio
+async def test_can_get_methods_meta_when_using_lazy_client():
+    client = AsyncClient("localhost:50051")
+    response = await client.get_methods_meta(reflection_service_name)
+    server_reflection_info = response["ServerReflectionInfo"]
+
+    assert isinstance(server_reflection_info, MethodMetaData)
+    assert server_reflection_info.input_type == reflection_pb2.ServerReflectionRequest
+    assert server_reflection_info.output_type == reflection_pb2.ServerReflectionResponse
+    assert server_reflection_info.method_type == MethodType.STREAM_STREAM
+
+
+@pytest.mark.asyncio
+async def test_can_get_methods_meta_when_using_non_lazy_client():
+    client = AsyncClient("localhost:50051", lazy=False)
+    response = await client.get_methods_meta(reflection_service_name)
+    server_reflection_info = response["ServerReflectionInfo"]
+
+    assert isinstance(server_reflection_info, MethodMetaData)
+    assert server_reflection_info.input_type == reflection_pb2.ServerReflectionRequest
+    assert server_reflection_info.output_type == reflection_pb2.ServerReflectionResponse
+    assert server_reflection_info.method_type == MethodType.STREAM_STREAM

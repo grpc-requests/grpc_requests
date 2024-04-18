@@ -1,5 +1,6 @@
 import logging
 import sys
+import warnings
 from enum import Enum
 from functools import partial
 from typing import (
@@ -131,14 +132,10 @@ class BaseAsyncClient:
         return self._channel
 
     @classmethod
-    async def get_by_endpoint(
-            cls: Union[Type["ReflectionAsyncClient"], Type["BaseAsyncGrpcClient"]],
-            endpoint: str,
-            **kwargs,
-    ):
+    def get_by_endpoint(cls, endpoint: str, **kwargs):
         global _cached_clients
         if endpoint not in _cached_clients:
-            _cached_clients[endpoint] = await cls.create(endpoint, lazy=False, **kwargs)
+            _cached_clients[endpoint] = cls(endpoint, **kwargs)
         return _cached_clients[endpoint]
 
     async def __aenter__(self):
@@ -292,7 +289,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
             compression=compression,
             **kwargs,
         )
-        self._service_names: list = None
+        self._service_names: Optional[List] = None
         self._lazy = lazy
         self.has_server_registered = False
         self._skip_check_method_available = skip_check_method_available
@@ -315,7 +312,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         raise NotImplementedError()
 
     async def check_method_available(
-        self, service, method, method_type: MethodType = None
+        self, service: str, method: str, method_type: MethodType = None
     ):
         if self._skip_check_method_available:
             return True
@@ -400,6 +397,9 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         return self._service_names
 
     async def get_methods_meta(self, service_name: str):
+        if not self._lazy and not self.has_server_registered:
+            await self.register_all_service()
+
         if (
                 self._lazy
                 and service_name in await self.service_names()
@@ -413,12 +413,12 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
             raise ValueError(f"{service_name} service not found on server")
 
     @staticmethod
-    def _make_method_full_name(service, method):
+    def _make_method_full_name(service: str, method: str):
         return f"/{service}/{method}"
 
-    async def _request(self, service, method, request, raw_output=False, **kwargs):
+    async def _request(self, service: str, method: str, request, raw_output=False, **kwargs):
         # does not check request is available
-        method_meta = self.get_method_meta(service, method)
+        method_meta = await self.get_method_meta(service, method)
 
         _request = method_meta.request_parser(request, method_meta.input_type)
         if method_meta.method_type.is_unary_response:
@@ -432,28 +432,28 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
             result = method_meta.handler(_request, **kwargs)
             return method_meta.response_parser(result)
 
-    async def request(self, service, method, request=None, raw_output=False, **kwargs):
+    async def request(self, service: str, method: str, request=None, raw_output=False, **kwargs):
         await self.check_method_available(service, method)
         return await self._request(service, method, request, raw_output, **kwargs)
 
     async def unary_unary(
-        self, service, method, request=None, raw_output=False, **kwargs
+        self, service: str, method: str, request=None, raw_output=False, **kwargs
     ):
         await self.check_method_available(service, method, MethodType.UNARY_UNARY)
         return await self._request(service, method, request, raw_output, **kwargs)
 
     async def unary_stream(
-        self, service, method, request=None, raw_output=False, **kwargs
+        self, service: str, method: str, request=None, raw_output=False, **kwargs
     ):
         await self.check_method_available(service, method, MethodType.UNARY_STREAM)
         return await self._request(service, method, request, raw_output, **kwargs)
 
-    async def stream_unary(self, service, method, requests, raw_output=False, **kwargs):
+    async def stream_unary(self, service: str, method: str, requests, raw_output=False, **kwargs):
         await self.check_method_available(service, method, MethodType.STREAM_UNARY)
         return await self._request(service, method, requests, raw_output, **kwargs)
 
     async def stream_stream(
-        self, service, method, requests, raw_output=False, **kwargs
+        self, service: str, method: str, requests, raw_output=False, **kwargs
     ):
         await self.check_method_available(service, method, MethodType.STREAM_STREAM)
         return await self._request(service, method, requests, raw_output, **kwargs)
@@ -461,16 +461,26 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
     def get_service_descriptor(self, service):
         return self._desc_pool.FindServiceByName(service)
 
-    def get_method_descriptor(self, service, method):
+    def get_method_descriptor(self, service: str, method: str):
         svc_desc = self.get_service_descriptor(service)
         return svc_desc.FindMethodByName(method)
 
-    def get_method_meta(self, service: str, method: str) -> MethodMetaData:
+    async def get_method_meta(self, service: str, method: str) -> MethodMetaData:
         # add lazy mode & exception
+        if self._lazy is False and not self.has_server_registered:
+            await self.register_all_service()
+
+        if (
+                self._lazy
+                and service in await self.service_names()
+                and service not in self._service_methods_meta
+        ):
+            await self.register_service(service)
+
         return self._service_methods_meta[service][method]
 
-    def make_handler_argument(self, service: str, method: str):
-        data_type = self.get_method_meta(service, method)
+    async def make_handler_argument(self, service: str, method: str):
+        data_type = await self.get_method_meta(service, method)
         return {
             "method": self._make_method_full_name(service, method),
             "request_serializer": data_type.input_type.SerializeToString,
