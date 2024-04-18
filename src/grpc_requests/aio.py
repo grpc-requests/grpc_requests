@@ -13,8 +13,6 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
-    Type,
-    Union,
 )
 
 import grpc
@@ -270,15 +268,15 @@ MethodTypeMatch: Dict[Tuple[IS_REQUEST_STREAM, IS_RESPONSE_STREAM], MethodType] 
 
 class BaseAsyncGrpcClient(BaseAsyncClient):
     def __init__(
-            self,
-            endpoint,
-            symbol_db=None,
-            descriptor_pool=None,
-            lazy=True,
-            ssl=False,
-            compression=None,
-            skip_check_method_available=False,
-            message_parsers: MessageParsersProtocol = MessageParsers(),
+        self,
+        endpoint,
+        symbol_db=None,
+        descriptor_pool=None,
+        lazy=True,
+        ssl=False,
+        compression=None,
+        skip_check_method_available=False,
+        message_parsers: MessageParsersProtocol = MessageParsers(),
         **kwargs,
     ):
         super().__init__(
@@ -401,9 +399,9 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
             await self.register_all_service()
 
         if (
-                self._lazy
-                and service_name in await self.service_names()
-                and service_name not in self._service_methods_meta
+            self._lazy
+            and service_name in await self.service_names()
+            and service_name not in self._service_methods_meta
         ):
             await self.register_service(service_name)
 
@@ -416,7 +414,9 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
     def _make_method_full_name(service: str, method: str):
         return f"/{service}/{method}"
 
-    async def _request(self, service: str, method: str, request, raw_output=False, **kwargs):
+    async def _request(
+        self, service: str, method: str, request, raw_output=False, **kwargs
+    ):
         # does not check request is available
         method_meta = await self.get_method_meta(service, method)
 
@@ -432,7 +432,9 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
             result = method_meta.handler(_request, **kwargs)
             return method_meta.response_parser(result)
 
-    async def request(self, service: str, method: str, request=None, raw_output=False, **kwargs):
+    async def request(
+        self, service: str, method: str, request=None, raw_output=False, **kwargs
+    ):
         await self.check_method_available(service, method)
         return await self._request(service, method, request, raw_output, **kwargs)
 
@@ -448,7 +450,9 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         await self.check_method_available(service, method, MethodType.UNARY_STREAM)
         return await self._request(service, method, request, raw_output, **kwargs)
 
-    async def stream_unary(self, service: str, method: str, requests, raw_output=False, **kwargs):
+    async def stream_unary(
+        self, service: str, method: str, requests, raw_output=False, **kwargs
+    ):
         await self.check_method_available(service, method, MethodType.STREAM_UNARY)
         return await self._request(service, method, requests, raw_output, **kwargs)
 
@@ -471,9 +475,9 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
             await self.register_all_service()
 
         if (
-                self._lazy
-                and service in await self.service_names()
-                and service not in self._service_methods_meta
+            self._lazy
+            and service in await self.service_names()
+            and service not in self._service_methods_meta
         ):
             await self.register_service(service)
 
@@ -501,14 +505,14 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
 
 class ReflectionAsyncClient(BaseAsyncGrpcClient):
     def __init__(
-            self,
-            endpoint,
-            symbol_db=None,
-            descriptor_pool=None,
-            lazy=True,
-            ssl=False,
-            compression=None,
-            message_parsers: MessageParsersProtocol = MessageParsers(),
+        self,
+        endpoint,
+        symbol_db=None,
+        descriptor_pool=None,
+        lazy=True,
+        ssl=False,
+        compression=None,
+        message_parsers: MessageParsersProtocol = MessageParsers(),
         **kwargs,
     ):
         super().__init__(
@@ -642,15 +646,15 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
 
 class StubAsyncClient(BaseAsyncGrpcClient):
     def __init__(
-            self,
-            endpoint,
-            service_descriptors: List[ServiceDescriptor],
-            symbol_db=None,
-            lazy=False,
-            descriptor_pool=None,
-            ssl=False,
-            compression=None,
-            **kwargs,
+        self,
+        endpoint,
+        service_descriptors: List[ServiceDescriptor],
+        symbol_db=None,
+        lazy=False,
+        descriptor_pool=None,
+        ssl=False,
+        compression=None,
+        **kwargs,
     ):
         super().__init__(
             endpoint,
