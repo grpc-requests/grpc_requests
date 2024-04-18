@@ -364,8 +364,8 @@ async def test_unary_stream_empty():
 @pytest.mark.asyncio
 async def test_services_are_not_registered_when_using_lazy_client():
     client = AsyncClient("localhost:50051")
-    with pytest.raises(KeyError, match=reflection_service_name):
-        await client.get_method_meta(reflection_service_name, 'ServerReflectionInfo')
+    await client.get_method_meta(reflection_service_name, 'ServerReflectionInfo')
+    assert client.has_server_registered is False
 
 
 @pytest.mark.asyncio
