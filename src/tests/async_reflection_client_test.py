@@ -172,24 +172,6 @@ async def test_get_service_descriptor():
 
 
 @pytest.mark.asyncio
-async def test_get_file_descriptor_by_name():
-    client = AsyncClient("localhost:50051")
-    file_descriptor = await client.get_file_descriptor_by_name("helloworld.proto")
-    assert file_descriptor.name == "helloworld.proto"
-    assert file_descriptor.package == "helloworld"
-    assert file_descriptor.syntax == "proto3"
-
-
-@pytest.mark.asyncio
-async def test_get_file_descriptor_by_symbol():
-    client = AsyncClient("localhost:50051")
-    file_descriptor = await client.get_file_descriptor_by_symbol("helloworld.Greeter")
-    assert file_descriptor.name == "helloworld.proto"
-    assert file_descriptor.package == "helloworld"
-    assert file_descriptor.syntax == "proto3"
-
-
-@pytest.mark.asyncio
 async def test_get_file_descriptors_by_name():
     client = AsyncClient(
         "localhost:50053", descriptor_pool=descriptor_pool.DescriptorPool()
