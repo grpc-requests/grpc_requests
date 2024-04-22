@@ -123,6 +123,27 @@ result = await greeter.HelloEveryone(requests_data)
 results = [x async for x in await greeter.SayHelloOneByOne(requests_data)]  
 ```
 
+## Setting a Client's message_to_dict behavior
+
+By utilizing `CustomArgumentParsers`, behavioral arguments can be passed to
+message_to_dict at time of Client instantiation. This is available for both
+synchronous and asynchronous clients.
+
+```python
+client = Client(
+            "localhost:50051",
+            message_parsers=CustomArgumentParsers(
+                message_to_dict_kwargs={
+                    "preserving_proto_field_name": True,
+                    "including_default_value_fields": True,
+                }
+            ),
+        )
+        yield client
+```
+
+[Review the json_format documentation for what kwargs are available to message_to_dict.](https://googleapis.dev/python/protobuf/latest/google/protobuf/json_format.html)
+
 ## Retrieving Information about a Server
 
 All forms of clients expose methods to allow a user to query a server about its
