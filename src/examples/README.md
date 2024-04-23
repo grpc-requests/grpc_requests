@@ -139,7 +139,6 @@ client = Client(
                 }
             ),
         )
-        yield client
 ```
 
 [Review the json_format documentation for what kwargs are available to message_to_dict.](https://googleapis.dev/python/protobuf/latest/google/protobuf/json_format.html)
