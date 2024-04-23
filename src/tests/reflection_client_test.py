@@ -111,23 +111,6 @@ def test_unary_unary(helloworld_reflection_client):
     assert response == {"message": "Hello, sinsky!"}
 
 
-def test_describe_method_request(client_tester_reflection_client):
-    request_description = client_tester_reflection_client.describe_method_request(
-        "client_tester.ClientTester", "TestUnaryUnary"
-    )
-    expected_request_description = {
-        "factor": "INT32",
-        "readings": "FLOAT",
-        "uuid": "UINT64",
-        "sample_flag": "BOOL",
-        "request_name": "STRING",
-        "extra_data": "BYTES",
-    }
-    assert (
-        request_description == expected_request_description
-    ), f"Expected: {expected_request_description}, Actual: {request_description}"
-
-
 def test_describe_request(client_tester_reflection_client):
     request_description = client_tester_reflection_client.describe_request(
         "client_tester.ClientTester", "TestUnaryUnary"
@@ -237,24 +220,6 @@ def test_get_service_descriptor(helloworld_reflection_client):
         "helloworld.Greeter"
     )
     assert service_descriptor.name == "Greeter"
-
-
-def test_get_file_descriptor_by_name(helloworld_reflection_client):
-    file_descriptor = helloworld_reflection_client.get_file_descriptor_by_name(
-        "helloworld.proto"
-    )
-    assert file_descriptor.name == "helloworld.proto"
-    assert file_descriptor.package == "helloworld"
-    assert file_descriptor.syntax == "proto3"
-
-
-def test_get_file_descriptor_by_symbol(helloworld_reflection_client):
-    file_descriptor = helloworld_reflection_client.get_file_descriptor_by_symbol(
-        "helloworld.Greeter"
-    )
-    assert file_descriptor.name == "helloworld.proto"
-    assert file_descriptor.package == "helloworld"
-    assert file_descriptor.syntax == "proto3"
 
 
 def test_get_file_descriptors_by_name():

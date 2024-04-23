@@ -1,6 +1,5 @@
 import logging
 import sys
-import warnings
 from enum import Enum
 from functools import partial
 from typing import (
@@ -23,7 +22,7 @@ from google.protobuf.descriptor_pb2 import ServiceDescriptorProto
 from google.protobuf.json_format import MessageToDict, ParseDict
 from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 
-from .utils import describe_descriptor, describe_request, load_data
+from .utils import describe_descriptor, load_data
 
 if sys.version_info >= (3, 8):
     import importlib.metadata
@@ -443,13 +442,6 @@ class BaseGrpcClient(BaseClient):
         """
         return self._desc_pool.FindServiceByName(service)
 
-    def describe_method_request(self, service, method):
-        warnings.warn(
-            "This function is deprecated, and will be removed in the 0.1.17 release. Use describe_descriptor() instead.",
-            DeprecationWarning,
-        )
-        return describe_request(self.get_method_descriptor(service, method))
-
     def describe_request(self, service, method):
         return describe_descriptor(
             self.get_method_descriptor(service, method).input_type
@@ -524,26 +516,6 @@ class ReflectionClient(BaseGrpcClient):
         resp = self._reflection_single_request(request)
         services = tuple([s.name for s in resp.list_services_response.service])
         return services
-
-    def get_file_descriptor_by_name(self, name):
-        warnings.warn(
-            "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_name() instead.",
-            DeprecationWarning,
-        )
-        request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)
-        result = self._reflection_single_request(request)
-        proto = result.file_descriptor_response.file_descriptor_proto[0]
-        return descriptor_pb2.FileDescriptorProto.FromString(proto)
-
-    def get_file_descriptor_by_symbol(self, symbol):
-        warnings.warn(
-            "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_symbol() instead.",
-            DeprecationWarning,
-        )
-        request = reflection_pb2.ServerReflectionRequest(file_containing_symbol=symbol)
-        result = self._reflection_single_request(request)
-        proto = result.file_descriptor_response.file_descriptor_proto[0]
-        return descriptor_pb2.FileDescriptorProto.FromString(proto)
 
     def get_file_descriptors_by_name(self, name):
         request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)
