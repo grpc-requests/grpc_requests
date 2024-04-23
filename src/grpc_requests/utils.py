@@ -2,11 +2,9 @@ from pathlib import Path
 from google.protobuf.descriptor import (
     Descriptor,
     EnumDescriptor,
-    MethodDescriptor,
     OneofDescriptor,
 )
 
-import warnings
 
 # String descriptions of protobuf field types
 FIELD_TYPES = [
@@ -35,23 +33,6 @@ def load_data(_path):
     with open(Path(_path).expanduser(), "rb") as f:
         data = f.read()
     return data
-
-
-def describe_request(method_descriptor: MethodDescriptor) -> dict:
-    """
-    Provide a dictionary that describes the fields of a Method request
-    with a string description of their types.
-    :param method_descriptor: MethodDescriptor
-    :return: dict - a mapping of field names to their types
-    """
-    warnings.warn(
-        "This function is deprecated, and will be removed in the 0.1.17 release. Use describe_descriptor() instead.",
-        DeprecationWarning,
-    )
-    description = {}
-    for field in method_descriptor.input_type.fields:
-        description[field.name] = FIELD_TYPES[field.type - 1]
-    return description
 
 
 def describe_descriptor(descriptor: Descriptor, indent: int = 0) -> str:

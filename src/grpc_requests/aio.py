@@ -1,6 +1,5 @@
 import logging
 import sys
-import warnings
 from enum import Enum
 from functools import partial
 from typing import (
@@ -18,10 +17,16 @@ from typing import (
 import grpc
 from google.protobuf import (
     descriptor_pb2,
-    descriptor_pool as _descriptor_pool,
-    symbol_database as _symbol_database,
     message_factory,
-)  # noqa: E501
+)
+from google.protobuf import (
+    descriptor_pool as _descriptor_pool,
+)
+from google.protobuf import (
+    symbol_database as _symbol_database,
+)
+
+# noqa: E501
 from google.protobuf.descriptor import MethodDescriptor, ServiceDescriptor
 from google.protobuf.descriptor_pb2 import ServiceDescriptorProto
 from google.protobuf.json_format import MessageToDict, ParseDict
@@ -34,11 +39,13 @@ logger = logging.getLogger(__name__)
 
 if sys.version_info >= (3, 8):
     import importlib.metadata
+    from typing import Protocol
 
     def get_metadata(package_name: str):
         return importlib.metadata.version(package_name)
 else:
     import pkg_resources
+    from typing_extensions import Protocol
 
     def get_metadata(package_name: str):
         return pkg_resources.get_distribution(package_name).version
@@ -146,27 +153,67 @@ class BaseAsyncClient:
                 pass
 
 
-def parse_request_data(reqeust_data, input_type):
-    _data = reqeust_data or {}
-    if isinstance(_data, dict):
-        request = ParseDict(_data, input_type())
-    else:
-        request = _data
-    return request
+class MessageParsersProtocol(Protocol):
+    def parse_request_data(self, request_data, input_type): ...
+
+    def parse_stream_requests(self, stream_requests_data: Iterable, input_type): ...
+
+    async def parse_response(self, response): ...
+
+    async def parse_stream_responses(self, responses: AsyncIterable): ...
 
 
-def parse_stream_requests(stream_requests_data: Iterable, input_type):
-    for request_data in stream_requests_data:
-        yield parse_request_data(request_data or {}, input_type)
+class MessageParsers(MessageParsersProtocol):
+    def parse_request_data(self, request_data, input_type):
+        _data = request_data or {}
+        if isinstance(_data, dict):
+            request = ParseDict(_data, input_type())
+        else:
+            request = _data
+        return request
+
+    def parse_stream_requests(self, stream_requests_data: Iterable, input_type):
+        for request_data in stream_requests_data:
+            yield self.parse_request_data(request_data or {}, input_type)
+
+    async def parse_response(self, response):
+        return MessageToDict(response, preserving_proto_field_name=True)
+
+    async def parse_stream_responses(self, responses: AsyncIterable):
+        async for resp in responses:
+            yield await self.parse_response(resp)
 
 
-async def parse_response(response):
-    return MessageToDict(response, preserving_proto_field_name=True)
+class CustomArgumentParsers(MessageParsersProtocol):
+    _message_to_dict_kwargs: Dict[str, Any]
+    _parse_dict_kwargs: Dict[str, Any]
 
+    def __init__(
+        self,
+        message_to_dict_kwargs: Dict[str, Any] = dict(),
+        parse_dict_kwargs: Dict[str, Any] = dict(),
+    ):
+        self._message_to_dict_kwargs = message_to_dict_kwargs or {}
+        self._parse_dict_kwargs = parse_dict_kwargs or {}
 
-async def parse_stream_responses(responses: AsyncIterable):
-    async for resp in responses:
-        yield await parse_response(resp)
+    def parse_request_data(self, request_data, input_type):
+        _data = request_data or {}
+        if isinstance(_data, dict):
+            request = ParseDict(_data, input_type(), **self._parse_dict_kwargs)
+        else:
+            request = _data
+        return request
+
+    def parse_stream_requests(self, stream_requests_data: Iterable, input_type):
+        for request_data in stream_requests_data:
+            yield self.parse_request_data(request_data or {}, input_type)
+
+    async def parse_response(self, response):
+        return MessageToDict(response, **self._message_to_dict_kwargs)
+
+    async def parse_stream_responses(self, responses: AsyncIterable):
+        async for resp in responses:
+            yield await self.parse_response(resp)
 
 
 class MethodType(Enum):
@@ -180,16 +227,8 @@ class MethodType(Enum):
         return "unary_" in self.value
 
     @property
-    def request_parser(self):
-        return parse_request_data if self.is_unary_request else parse_stream_requests
-
-    @property
     def is_unary_response(self):
         return "_unary" in self.value
-
-    @property
-    def response_parser(self):
-        return parse_response if self.is_unary_response else parse_stream_responses
 
 
 class MethodMetaData(NamedTuple):
@@ -198,6 +237,21 @@ class MethodMetaData(NamedTuple):
     method_type: MethodType
     handler: Any
     descriptor: MethodDescriptor
+    parsers: MessageParsersProtocol
+
+    @property
+    def request_parser(self):
+        if self.method_type.is_unary_request:
+            return self.parsers.parse_request_data
+        else:
+            return self.parsers.parse_stream_requests
+
+    @property
+    def response_parser(self):
+        if self.method_type.is_unary_response:
+            return self.parsers.parse_response
+        else:
+            return self.parsers.parse_stream_responses
 
 
 IS_REQUEST_STREAM = TypeVar("IS_REQUEST_STREAM")
@@ -220,6 +274,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         ssl=False,
         compression=None,
         skip_check_method_available=False,
+        message_parsers: MessageParsersProtocol = MessageParsers(),
         **kwargs,
     ):
         super().__init__(
@@ -233,6 +288,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         self._service_names: list = None
         self.has_server_registered = False
         self._skip_check_method_available = skip_check_method_available
+        self._message_parsers = message_parsers
         self._services_module_name = {}
         self._service_methods_meta: Dict[str, Dict[str, MethodMetaData]] = {}
 
@@ -309,6 +365,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
                 output_type=output_type,
                 handler=handler,
                 descriptor=method_desc,
+                parsers=self._message_parsers,
             )
         return metadata
 
@@ -348,19 +405,17 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         # does not check request is available
         method_meta = self.get_method_meta(service, method)
 
-        _request = method_meta.method_type.request_parser(
-            request, method_meta.input_type
-        )
+        _request = method_meta.request_parser(request, method_meta.input_type)
         if method_meta.method_type.is_unary_response:
             result = await method_meta.handler(_request, **kwargs)
 
             if raw_output:
                 return result
             else:
-                return await method_meta.method_type.response_parser(result)
+                return await method_meta.response_parser(result)
         else:
             result = method_meta.handler(_request, **kwargs)
-            return method_meta.method_type.response_parser(result)
+            return method_meta.response_parser(result)
 
     async def request(self, service, method, request=None, raw_output=False, **kwargs):
         await self.check_method_available(service, method)
@@ -427,6 +482,7 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
         descriptor_pool=None,
         ssl=False,
         compression=None,
+        message_parsers: MessageParsersProtocol = MessageParsers(),
         **kwargs,
     ):
         super().__init__(
@@ -435,6 +491,7 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
             descriptor_pool,
             ssl=ssl,
             compression=compression,
+            message_parsers=message_parsers,
             **kwargs,
         )
         self.reflection_stub = reflection_pb2_grpc.ServerReflectionStub(self.channel)
@@ -452,26 +509,6 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
         resp = await self._reflection_single_request(request)
         services = tuple([s.name for s in resp.list_services_response.service])
         return services
-
-    async def get_file_descriptor_by_name(self, name):
-        warnings.warn(
-            "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_name() instead.",
-            DeprecationWarning,
-        )
-        request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)
-        result = await self._reflection_single_request(request)
-        proto = result.file_descriptor_response.file_descriptor_proto[0]
-        return descriptor_pb2.FileDescriptorProto.FromString(proto)
-
-    async def get_file_descriptor_by_symbol(self, symbol):
-        warnings.warn(
-            "This function is deprecated, and will be removed in the 0.1.17 release. Use get_file_descriptors_by_symbol() instead.",
-            DeprecationWarning,
-        )
-        request = reflection_pb2.ServerReflectionRequest(file_containing_symbol=symbol)
-        result = await self._reflection_single_request(request)
-        proto = result.file_descriptor_response.file_descriptor_proto[0]
-        return descriptor_pb2.FileDescriptorProto.FromString(proto)
 
     async def get_file_descriptors_by_name(self, name):
         request = reflection_pb2.ServerReflectionRequest(file_by_filename=name)

@@ -1,18 +1,17 @@
 import logging
-import pytest
 
-from grpc_requests.client import Client, MethodType
-from google.protobuf.json_format import ParseError
-from google.protobuf.descriptor import MethodDescriptor
 import grpc
-
+import pytest
+from google.protobuf import descriptor_pb2, descriptor_pool
+from google.protobuf.descriptor import MethodDescriptor
+from google.protobuf.json_format import ParseError
+from grpc_requests.client import Client, CustomArgumentParsers, MethodType
 from tests.common import MetadataClientInterceptor
 from tests.test_servers.dependencies import (
     dependencies_pb2,
     dependency1_pb2,
     dependency2_pb2,
 )
-from google.protobuf import descriptor_pool, descriptor_pb2
 
 """
 Test cases for reflection based client
@@ -49,6 +48,34 @@ def client_tester_reflection_client():
         pytest.fail("Could not connect to local Test server")
 
 
+@pytest.fixture(scope="module")
+def helloworld_empty_reflection_client():
+    try:
+        # Don't use get_by_endpoint here so we don't cache parsers
+        client = Client("localhost:50054")
+        yield client
+    except:  # noqa: E722
+        pytest.fail("Could not connect to local Empty HelloWorld server")
+
+
+@pytest.fixture(scope="module")
+def helloworld_empty_reflection_client_custom_parsers():
+    try:
+        # Don't use get_by_endpoint here so we don't cache parsers
+        client = Client(
+            "localhost:50054",
+            message_parsers=CustomArgumentParsers(
+                message_to_dict_kwargs={
+                    "preserving_proto_field_name": True,
+                    "including_default_value_fields": True,
+                }
+            ),
+        )
+        yield client
+    except:  # noqa: E722
+        pytest.fail("Could not connect to local Empty HelloWorld server")
+
+
 def test_metadata_usage(helloworld_reflection_client):
     response = helloworld_reflection_client.request(
         "helloworld.Greeter",
@@ -82,23 +109,6 @@ def test_unary_unary(helloworld_reflection_client):
     )
     assert isinstance(response, dict)
     assert response == {"message": "Hello, sinsky!"}
-
-
-def test_describe_method_request(client_tester_reflection_client):
-    request_description = client_tester_reflection_client.describe_method_request(
-        "client_tester.ClientTester", "TestUnaryUnary"
-    )
-    expected_request_description = {
-        "factor": "INT32",
-        "readings": "FLOAT",
-        "uuid": "UINT64",
-        "sample_flag": "BOOL",
-        "request_name": "STRING",
-        "extra_data": "BYTES",
-    }
-    assert (
-        request_description == expected_request_description
-    ), f"Expected: {expected_request_description}, Actual: {request_description}"
 
 
 def test_describe_request(client_tester_reflection_client):
@@ -212,24 +222,6 @@ def test_get_service_descriptor(helloworld_reflection_client):
     assert service_descriptor.name == "Greeter"
 
 
-def test_get_file_descriptor_by_name(helloworld_reflection_client):
-    file_descriptor = helloworld_reflection_client.get_file_descriptor_by_name(
-        "helloworld.proto"
-    )
-    assert file_descriptor.name == "helloworld.proto"
-    assert file_descriptor.package == "helloworld"
-    assert file_descriptor.syntax == "proto3"
-
-
-def test_get_file_descriptor_by_symbol(helloworld_reflection_client):
-    file_descriptor = helloworld_reflection_client.get_file_descriptor_by_symbol(
-        "helloworld.Greeter"
-    )
-    assert file_descriptor.name == "helloworld.proto"
-    assert file_descriptor.package == "helloworld"
-    assert file_descriptor.syntax == "proto3"
-
-
 def test_get_file_descriptors_by_name():
     client = Client("localhost:50053", descriptor_pool=descriptor_pool.DescriptorPool())
     file_descriptor = client.get_file_descriptors_by_name("dependencies.proto")
@@ -304,3 +296,77 @@ def test_register_file_descriptors_incomplete_dependencies():
         file_descriptors.append(proto)
     with pytest.raises(grpc.RpcError):
         client.register_file_descriptors(file_descriptors)
+
+
+def test_unary_unary_empty_default(helloworld_empty_reflection_client):
+    response = helloworld_empty_reflection_client.request(
+        "helloworld.Greeter", "SayHello", {"name": "sinsky"}
+    )
+    assert isinstance(response, dict)
+    assert response == {}
+
+
+def test_unary_unary_empty_custom(helloworld_empty_reflection_client_custom_parsers):
+    response = helloworld_empty_reflection_client_custom_parsers.request(
+        "helloworld.Greeter", "SayHello", {"name": "unary_unary_custom"}
+    )
+    assert isinstance(response, dict)
+    assert response == {"message": ""}
+
+
+def test_unary_stream_empty_default(helloworld_empty_reflection_client):
+    name_list = ["sinsky", "viridianforge", "jack", "harry"]
+    responses = helloworld_empty_reflection_client.request(
+        "helloworld.Greeter", "SayHelloGroup", {"name": "".join(name_list)}
+    )
+    assert all(isinstance(response, dict) for response in responses)
+    for response, name in zip(responses, name_list):
+        assert response == {}
+
+
+def test_unary_stream_empty_custom(helloworld_empty_reflection_client_custom_parsers):
+    name_list = ["sinsky", "viridianforge", "jack", "harry"]
+    responses = helloworld_empty_reflection_client_custom_parsers.request(
+        "helloworld.Greeter", "SayHelloGroup", {"name": "".join(name_list)}
+    )
+    assert all(isinstance(response, dict) for response in responses)
+    for response, name in zip(responses, name_list):
+        assert response == {"message": ""}
+
+
+def test_stream_unary_empty_default(helloworld_empty_reflection_client):
+    name_list = ["sinsky", "viridianforge", "jack", "harry"]
+    response = helloworld_empty_reflection_client.request(
+        "helloworld.Greeter", "HelloEveryone", [{"name": name} for name in name_list]
+    )
+    assert isinstance(response, dict)
+    assert response == {}
+
+
+def test_stream_unary_empty_custom(helloworld_empty_reflection_client_custom_parsers):
+    name_list = ["sinsky", "viridianforge", "jack", "harry"]
+    response = helloworld_empty_reflection_client_custom_parsers.request(
+        "helloworld.Greeter", "HelloEveryone", [{"name": name} for name in name_list]
+    )
+    assert isinstance(response, dict)
+    assert response == {"message": ""}
+
+
+def test_stream_stream_empty_default(helloworld_empty_reflection_client):
+    name_list = ["sinsky", "viridianforge", "jack", "harry"]
+    responses = helloworld_empty_reflection_client.request(
+        "helloworld.Greeter", "SayHelloOneByOne", [{"name": name} for name in name_list]
+    )
+    assert all(isinstance(response, dict) for response in responses)
+    for response, name in zip(responses, name_list):
+        assert response == {}
+
+
+def test_stream_stream_empty_custom(helloworld_empty_reflection_client_custom_parsers):
+    name_list = ["sinsky", "viridianforge", "jack", "harry"]
+    responses = helloworld_empty_reflection_client_custom_parsers.request(
+        "helloworld.Greeter", "SayHelloOneByOne", [{"name": name} for name in name_list]
+    )
+    assert all(isinstance(response, dict) for response in responses)
+    for response, name in zip(responses, name_list):
+        assert response == {"message": ""}
