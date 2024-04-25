@@ -143,6 +143,22 @@ client = Client(
 
 [Review the json_format documentation for what kwargs are available to message_to_dict.](https://googleapis.dev/python/protobuf/latest/google/protobuf/json_format.html)
 
+## Creating an async lazy client
+An async lazy client can be used to improve startup performance, because the client doesn't need to perform some actions (like service discovery and method registration) during initialization.
+You can choose whether to use a lazy client or a non-lazy client based on your program's specific requirements. If you're sure that you'll need to use all of the client's operations as soon as the client is created, then a non-lazy (eager) client might be more suitable. If you only need to use certain operations and you're not sure when you'll need to use them, then a lazy client might be a better choice.
+```python
+from grpc_requests.aio import AsyncClient
+
+client_lazy = AsyncClient("localhost:50051", lazy=True)
+await client_lazy.get_methods_meta("helloworld.Greeter")
+print(f"INFO: registered service methods length for lazy client: {len(client_lazy._service_methods_meta)}")
+
+client_nonlazy = AsyncClient("localhost:50051", lazy=False)
+await client_nonlazy.get_methods_meta("helloworld.Greeter")
+print(f"INFO: registered service methods length for non-lazy client: {len(client_nonlazy._service_methods_meta)}")
+```
+
+
 ## Retrieving Information about a Server
 
 All forms of clients expose methods to allow a user to query a server about its
