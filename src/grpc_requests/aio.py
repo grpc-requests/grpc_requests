@@ -471,7 +471,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
 
     async def get_method_meta(self, service: str, method: str) -> MethodMetaData:
         # add lazy mode & exception
-        if self._lazy is False and not self.has_server_registered:
+        if not self._lazy and not self.has_server_registered:
             await self.register_all_service()
 
         if (
