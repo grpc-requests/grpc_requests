@@ -630,19 +630,6 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
             logger.debug(f"{service_name} registration complete")
         await super(ReflectionAsyncClient, self).register_service(service_name)
 
-    async def refresh_service_registrations(self):
-        """
-        Clears the existing registered services and freshly re-registers them.
-        Useful if the gRPC server adds or removes services dynamically.
-
-        Regular re-registration helps ensure the client's service registry remains
-        synchronized with the current state of the server, thus accommodating
-        service changes that occur during the lifespan of the connection.
-        """
-        self._service_methods_meta.clear()
-        self.has_server_registered = False
-        await self.register_all_service()
-
 
 class StubAsyncClient(BaseAsyncGrpcClient):
     def __init__(
