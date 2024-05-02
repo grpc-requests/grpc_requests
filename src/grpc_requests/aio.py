@@ -1,6 +1,5 @@
 import logging
 import sys
-import warnings
 from enum import Enum
 from functools import partial
 from typing import (
