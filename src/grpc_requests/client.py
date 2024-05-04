@@ -562,7 +562,7 @@ class ReflectionClient(BaseGrpcClient):
             )
             for dep_file_name in dependencies:
                 if not self._is_descriptor_registered(dep_file_name):
-                    # First look for dependency in the passed in descriptors
+                    # First look for dependency in the passed descriptors
                     dep_desc = next(
                         (x for x in file_descriptors if x.name == dep_file_name), None
                     )
