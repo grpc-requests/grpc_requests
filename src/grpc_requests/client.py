@@ -161,10 +161,7 @@ class MessageParsersProtocol(Protocol):
 class MessageParsers(MessageParsersProtocol):
     def parse_request_data(self, request_data, input_type):
         _data = request_data or {}
-        if isinstance(_data, dict):
-            request = ParseDict(_data, input_type())
-        else:
-            request = _data
+        request = ParseDict(_data, input_type()) if isinstance(_data, dict) else _data
         return request
 
     def parse_stream_requests(self, stream_requests_data: Iterable, input_type):
@@ -185,8 +182,8 @@ class CustomArgumentParsers(MessageParsersProtocol):
 
     def __init__(
         self,
-        message_to_dict_kwargs: Dict[str, Any] = dict(),
-        parse_dict_kwargs: Dict[str, Any] = dict(),
+        message_to_dict_kwargs: Dict[str, Any] = None,
+        parse_dict_kwargs: Dict[str, Any] = None,
     ):
         self._message_to_dict_kwargs = message_to_dict_kwargs or {}
         self._parse_dict_kwargs = parse_dict_kwargs or {}
@@ -270,7 +267,7 @@ class BaseGrpcClient(BaseClient):
         ssl=False,
         compression=None,
         skip_check_method_available=False,
-        message_parsers: MessageParsersProtocol = MessageParsers(),
+        message_parsers: MessageParsersProtocol=None,
         **kwargs,
     ):
         super().__init__(
@@ -285,7 +282,7 @@ class BaseGrpcClient(BaseClient):
         self._lazy = lazy
         self.has_server_registered = False
         self._skip_check_method_available = skip_check_method_available
-        self._message_parsers = message_parsers
+        self._message_parsers = message_parsers if message_parsers else MessageParsers()
         self._services_module_name = {}
         self._service_methods_meta: Dict[str, Dict[str, MethodMetaData]] = {}
 
@@ -393,9 +390,9 @@ class BaseGrpcClient(BaseClient):
 
         try:
             return self._service_methods_meta[service_name]
-        except KeyError:
-            raise ValueError(f"{service_name} service not found on server")
-
+        except KeyError as err:
+            raise ValueError(f"{service_name} service not found on server") from err
+ 
     @staticmethod
     def _make_method_full_name(service, method):
         return f"/{service}/{method}"
