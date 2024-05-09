@@ -267,7 +267,7 @@ class BaseGrpcClient(BaseClient):
         ssl=False,
         compression=None,
         skip_check_method_available=False,
-        message_parsers: MessageParsersProtocol=None,
+        message_parsers: MessageParsersProtocol = None,
         **kwargs,
     ):
         super().__init__(
@@ -392,7 +392,7 @@ class BaseGrpcClient(BaseClient):
             return self._service_methods_meta[service_name]
         except KeyError as err:
             raise ValueError(f"{service_name} service not found on server") from err
- 
+
     @staticmethod
     def _make_method_full_name(service, method):
         return f"/{service}/{method}"
