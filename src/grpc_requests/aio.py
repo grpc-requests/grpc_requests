@@ -1,5 +1,6 @@
 import logging
 import sys
+from contextlib import suppress
 from enum import Enum
 from functools import partial
 from typing import (
@@ -139,18 +140,14 @@ class BaseAsyncClient:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        try:
+        with suppress(Exception):
             await self._channel._close(None)
-        except Exception:  # pylint: disable=bare-except
-            pass
         return False
 
     def __del__(self):
         if self._channel:
-            try:
+            with suppress(Exception):
                 del self._channel
-            except Exception:  # pylint: disable=bare-except
-                pass
 
 
 class MessageParsersProtocol(Protocol):
@@ -166,10 +163,7 @@ class MessageParsersProtocol(Protocol):
 class MessageParsers(MessageParsersProtocol):
     def parse_request_data(self, request_data, input_type):
         _data = request_data or {}
-        if isinstance(_data, dict):
-            request = ParseDict(_data, input_type())
-        else:
-            request = _data
+        request = ParseDict(_data, input_type()) if isinstance(_data, dict) else _data
         return request
 
     def parse_stream_requests(self, stream_requests_data: Iterable, input_type):
@@ -190,8 +184,8 @@ class CustomArgumentParsers(MessageParsersProtocol):
 
     def __init__(
         self,
-        message_to_dict_kwargs: Dict[str, Any] = dict(),
-        parse_dict_kwargs: Dict[str, Any] = dict(),
+        message_to_dict_kwargs: Dict[str, Any] = None,
+        parse_dict_kwargs: Dict[str, Any] = None,
     ):
         self._message_to_dict_kwargs = message_to_dict_kwargs or {}
         self._parse_dict_kwargs = parse_dict_kwargs or {}
@@ -275,7 +269,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         ssl=False,
         compression=None,
         skip_check_method_available=False,
-        message_parsers: MessageParsersProtocol = MessageParsers(),
+        message_parsers: MessageParsersProtocol = None,
         **kwargs,
     ):
         super().__init__(
@@ -290,7 +284,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         self._lazy = lazy
         self.has_server_registered = False
         self._skip_check_method_available = skip_check_method_available
-        self._message_parsers = message_parsers
+        self._message_parsers = message_parsers if message_parsers else MessageParsers()
         self._services_module_name = {}
         self._service_methods_meta: Dict[str, Dict[str, MethodMetaData]] = {}
 
@@ -406,8 +400,8 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
 
         try:
             return self._service_methods_meta[service_name]
-        except KeyError:
-            raise ValueError(f"{service_name} service not found on server")
+        except KeyError as err:
+            raise ValueError(f"{service_name} service not found on server") from err
 
     @staticmethod
     def _make_method_full_name(service: str, method: str):
@@ -511,7 +505,7 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
         lazy=True,
         ssl=False,
         compression=None,
-        message_parsers: MessageParsersProtocol = MessageParsers(),
+        message_parsers: MessageParsersProtocol = None,
         **kwargs,
     ):
         super().__init__(
@@ -521,7 +515,7 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
             ssl=ssl,
             lazy=lazy,
             compression=compression,
-            message_parsers=message_parsers,
+            message_parsers=message_parsers if message_parsers else MessageParsers(),
             **kwargs,
         )
         self.reflection_stub = reflection_pb2_grpc.ServerReflectionStub(self.channel)

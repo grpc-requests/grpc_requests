@@ -332,7 +332,7 @@ async def test_stream_stream_empty():
         )
     ]
     assert all(isinstance(response, dict) for response in responses)
-    for response, name in zip(responses, name_list):
+    for response, _ in zip(responses, name_list):
         assert response == {"message": ""}
 
 
@@ -357,7 +357,7 @@ async def test_unary_stream_empty():
         )
     ]
     assert all(isinstance(response, dict) for response in responses)
-    for response, name in zip(responses, name_list):
+    for response, _ in zip(responses, name_list):
         assert response == {"message": ""}
 
 

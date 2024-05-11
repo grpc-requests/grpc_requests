@@ -320,7 +320,7 @@ def test_unary_stream_empty_default(helloworld_empty_reflection_client):
         "helloworld.Greeter", "SayHelloGroup", {"name": "".join(name_list)}
     )
     assert all(isinstance(response, dict) for response in responses)
-    for response, name in zip(responses, name_list):
+    for response, _ in zip(responses, name_list):
         assert response == {}
 
 
@@ -330,7 +330,7 @@ def test_unary_stream_empty_custom(helloworld_empty_reflection_client_custom_par
         "helloworld.Greeter", "SayHelloGroup", {"name": "".join(name_list)}
     )
     assert all(isinstance(response, dict) for response in responses)
-    for response, name in zip(responses, name_list):
+    for response, _ in zip(responses, name_list):
         assert response == {"message": ""}
 
 
@@ -358,7 +358,7 @@ def test_stream_stream_empty_default(helloworld_empty_reflection_client):
         "helloworld.Greeter", "SayHelloOneByOne", [{"name": name} for name in name_list]
     )
     assert all(isinstance(response, dict) for response in responses)
-    for response, name in zip(responses, name_list):
+    for response, _ in zip(responses, name_list):
         assert response == {}
 
 
@@ -368,5 +368,5 @@ def test_stream_stream_empty_custom(helloworld_empty_reflection_client_custom_pa
         "helloworld.Greeter", "SayHelloOneByOne", [{"name": name} for name in name_list]
     )
     assert all(isinstance(response, dict) for response in responses)
-    for response, name in zip(responses, name_list):
+    for response, _ in zip(responses, name_list):
         assert response == {"message": ""}
