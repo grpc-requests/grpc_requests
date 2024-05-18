@@ -15,6 +15,7 @@ from typing import (
 )
 
 import grpc
+import warnings
 from google.protobuf import descriptor_pb2, message_factory
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf.descriptor import MethodDescriptor, ServiceDescriptor
@@ -36,6 +37,11 @@ if sys.version_info >= (3, 8):
 else:
     import pkg_resources
     from typing_extensions import Protocol, TypedDict
+
+    warnings.warn(
+        "Support for Python 3.7 is deprecated and will be removed in version 0.1.19",
+        stacklevel=1,
+    )
 
     def get_metadata(package_name: str):
         return pkg_resources.get_distribution(package_name).version
