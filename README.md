@@ -60,7 +60,9 @@ usage scenarioes, and the [unit tests](./src/tests/) are also a useful reference
 Contributions from the community are welcomed and greatly appreciated.
 
 Before opening a PR, [tests.sh](./tests.sh) can be used to ensure the contribution passes
-linting and unit test checks.
+linting and unit test checks. You can also run [complexity.sh](./complexity.sh) to use
+[radon](https://pypi.org/project/radon/) to look at the cyclomatic complexity,
+maintainability index, and Halstead effort and difficulty of files.
 
 PRs should be targeted to merge with the `develop` branch. When opening a PR,
 please assign it to a maintainer for review. The maintainers will take it from
