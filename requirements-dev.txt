@@ -10,4 +10,7 @@ grpc-interceptor>=0.15.4
 ruff>=0.1.7
 grpcio-tools>=1.60.0
 grpcio-reflection>=1.60.0 # Tests require new enough reflection that supports transitive dependencies
+grpc-stubs >= 1.53.0
+types-protobuf>=5.26.0
 radon>=6.0.1
+mypy>=1.10.0

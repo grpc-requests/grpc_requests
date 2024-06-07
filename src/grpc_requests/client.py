@@ -10,7 +10,6 @@ from typing import (
     NamedTuple,
     Optional,
     Tuple,
-    TypeVar,
     Union,
 )
 
@@ -183,13 +182,13 @@ class MessageParsers(MessageParsersProtocol):
 
 
 class CustomArgumentParsers(MessageParsersProtocol):
-    _message_to_dict_kwargs: Dict[str, Any]
-    _parse_dict_kwargs: Dict[str, Any]
+    _message_to_dict_kwargs: Optional[Dict[str, Any]]
+    _parse_dict_kwargs: Optional[Dict[str, Any]]
 
     def __init__(
         self,
-        message_to_dict_kwargs: Dict[str, Any] = None,
-        parse_dict_kwargs: Dict[str, Any] = None,
+        message_to_dict_kwargs: Optional[Dict[str, Any]] = None,
+        parse_dict_kwargs: Optional[Dict[str, Any]] = None,
     ):
         self._message_to_dict_kwargs = message_to_dict_kwargs or {}
         self._parse_dict_kwargs = parse_dict_kwargs or {}
@@ -252,10 +251,7 @@ class MethodMetaData(NamedTuple):
             return self.parsers.parse_stream_responses
 
 
-IS_REQUEST_STREAM = TypeVar("IS_REQUEST_STREAM")
-IS_RESPONSE_STREAM = TypeVar("IS_RESPONSE_STREAM")
-
-MethodTypeMatch: Dict[Tuple[IS_REQUEST_STREAM, IS_RESPONSE_STREAM], MethodType] = {
+MethodTypeMatch: Dict[Tuple[bool, bool], MethodType] = {
     (False, False): MethodType.UNARY_UNARY,
     (True, False): MethodType.STREAM_UNARY,
     (False, True): MethodType.UNARY_STREAM,
@@ -273,7 +269,7 @@ class BaseGrpcClient(BaseClient):
         ssl=False,
         compression=None,
         skip_check_method_available=False,
-        message_parsers: MessageParsersProtocol = None,
+        message_parsers: Optional[MessageParsersProtocol] = None,
         **kwargs,
     ):
         super().__init__(
@@ -284,23 +280,19 @@ class BaseGrpcClient(BaseClient):
             compression=compression,
             **kwargs,
         )
-        self._service_names: list = None
+        self._service_names: Optional[List] = None
         self._lazy = lazy
         self.has_server_registered = False
         self._skip_check_method_available = skip_check_method_available
         self._message_parsers = message_parsers if message_parsers else MessageParsers()
-        self._services_module_name = {}
         self._service_methods_meta: Dict[str, Dict[str, MethodMetaData]] = {}
-
-        self._unary_unary_handler = {}
-        self._unary_stream_handler = {}
-        self._stream_unary_handler = {}
-        self._stream_stream_handler = {}
 
     def _get_service_names(self):
         raise NotImplementedError()
 
-    def check_method_available(self, service, method, method_type: MethodType = None):
+    def check_method_available(
+        self, service, method, method_type: Optional[MethodType] = None
+    ):
         if self._skip_check_method_available:
             return True
         if not self.has_server_registered:
@@ -340,7 +332,7 @@ class BaseGrpcClient(BaseClient):
                 input_type = GetMessageClass(method_desc.input_type)
                 output_type = GetMessageClass(method_desc.output_type)
             else:
-                msg_factory = message_factory.MessageFactory(method_proto)
+                msg_factory = message_factory.MessageFactory(self._desc_pool)
                 input_type = msg_factory.GetPrototype(method_desc.input_type)
                 output_type = msg_factory.GetPrototype(method_desc.output_type)
 
@@ -661,7 +653,7 @@ class ServiceClient:
 
 Client = ReflectionClient
 
-_cached_clients = {}  # Dict[str, Client] type (for 3.6,3.7 compatibility https://bugs.python.org/issue34939)
+_cached_clients: Dict[str, Client] = {}
 
 
 def get_by_endpoint(endpoint, service_descriptors=None, **kwargs) -> Client:
@@ -672,7 +664,7 @@ def get_by_endpoint(endpoint, service_descriptors=None, **kwargs) -> Client:
                 endpoint, service_descriptors=service_descriptors, **kwargs
             )
         else:
-            _cached_clients[endpoint] = Client(endpoint, **kwargs)
+            _cached_clients[endpoint] = ReflectionClient(endpoint, **kwargs)
     return _cached_clients[endpoint]
 
 
