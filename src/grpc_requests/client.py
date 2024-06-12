@@ -653,10 +653,10 @@ class ServiceClient:
 
 Client = ReflectionClient
 
-_cached_clients: Dict[str, Client] = {}
+_cached_clients: Dict[str, Union[StubClient, ReflectionClient]] = {}
 
 
-def get_by_endpoint(endpoint, service_descriptors=None, **kwargs) -> Client:
+def get_by_endpoint(endpoint: str, service_descriptors=None, **kwargs) -> Client:
     global _cached_clients
     if endpoint not in _cached_clients:
         if service_descriptors:
@@ -665,7 +665,7 @@ def get_by_endpoint(endpoint, service_descriptors=None, **kwargs) -> Client:
             )
         else:
             _cached_clients[endpoint] = ReflectionClient(endpoint, **kwargs)
-    return _cached_clients[endpoint]
+    return _cached_clients[endpoint]  # type: ignore[return-value]
 
 
 def reset_cached_client(endpoint=None):

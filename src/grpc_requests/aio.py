@@ -12,6 +12,7 @@ from typing import (
     NamedTuple,
     Optional,
     Tuple,
+    Union,
 )
 
 import grpc
@@ -684,7 +685,9 @@ class ServiceClient:
 
 AsyncClient = ReflectionAsyncClient
 
-_cached_clients = {}  # Dict[str, AsyncClient] type (for 3.6,3.7 compatibility https://bugs.python.org/issue34939)
+_cached_clients: Dict[
+    str, Union[BaseAsyncClient, StubAsyncClient, ReflectionAsyncClient]
+] = {}  # Dict[str, AsyncClient] type (for 3.6,3.7 compatibility https://bugs.python.org/issue34939)
 
 
 def get_by_endpoint(endpoint, service_descriptors=None, **kwargs) -> AsyncClient:
@@ -696,7 +699,7 @@ def get_by_endpoint(endpoint, service_descriptors=None, **kwargs) -> AsyncClient
             )
         else:
             _cached_clients[endpoint] = AsyncClient(endpoint, **kwargs)
-    return _cached_clients[endpoint]
+    return _cached_clients[endpoint]  # type: ignore[return-value]
 
 
 def reset_cached_async_client(endpoint=None):
