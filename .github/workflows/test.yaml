@@ -7,7 +7,7 @@ on:
       - master
 
 jobs:
-  tests:
+  run_tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -27,7 +27,7 @@ jobs:
         run: |
           ruff check src/grpc_requests/*.py src/tests/*.py --statistics --config ruff.toml
           ruff format src/grpc_requests/*.py src/tests/*.py --check --config ruff.toml
-      - name: Typecheck src with mypy
+      - name: Typecheck with mypy
         run: |
           mypy src/grpc_requests/*.py
       - name: Test with pytest
