@@ -27,6 +27,9 @@ jobs:
         run: |
           ruff check src/grpc_requests/*.py src/tests/*.py --statistics --config ruff.toml
           ruff format src/grpc_requests/*.py src/tests/*.py --check --config ruff.toml
+      - name: Typecheck src with mypy
+        run: |
+          mypy src/grpc_requests/*.py
       - name: Test with pytest
         run: |
           pytest --cov-report=xml --cov=src/grpc_requests
