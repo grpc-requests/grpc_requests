@@ -12,7 +12,7 @@ from typing import (
     NamedTuple,
     Optional,
     Tuple,
-    TypeVar,
+    Union,
 )
 
 import grpc
@@ -185,13 +185,13 @@ class MessageParsers(MessageParsersProtocol):
 
 
 class CustomArgumentParsers(MessageParsersProtocol):
-    _message_to_dict_kwargs: Dict[str, Any]
-    _parse_dict_kwargs: Dict[str, Any]
+    _message_to_dict_kwargs: Optional[Dict[str, Any]]
+    _parse_dict_kwargs: Optional[Dict[str, Any]]
 
     def __init__(
         self,
-        message_to_dict_kwargs: Dict[str, Any] = None,
-        parse_dict_kwargs: Dict[str, Any] = None,
+        message_to_dict_kwargs: Optional[Dict[str, Any]] = None,
+        parse_dict_kwargs: Optional[Dict[str, Any]] = None,
     ):
         self._message_to_dict_kwargs = message_to_dict_kwargs or {}
         self._parse_dict_kwargs = parse_dict_kwargs or {}
@@ -254,10 +254,7 @@ class MethodMetaData(NamedTuple):
             return self.parsers.parse_stream_responses
 
 
-IS_REQUEST_STREAM = TypeVar("IS_REQUEST_STREAM")
-IS_RESPONSE_STREAM = TypeVar("IS_RESPONSE_STREAM")
-
-MethodTypeMatch: Dict[Tuple[IS_REQUEST_STREAM, IS_RESPONSE_STREAM], MethodType] = {
+MethodTypeMatch: Dict[Tuple[bool, bool], MethodType] = {
     (False, False): MethodType.UNARY_UNARY,
     (True, False): MethodType.STREAM_UNARY,
     (False, True): MethodType.UNARY_STREAM,
@@ -275,7 +272,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         ssl=False,
         compression=None,
         skip_check_method_available=False,
-        message_parsers: MessageParsersProtocol = None,
+        message_parsers: Optional[MessageParsersProtocol] = None,
         **kwargs,
     ):
         super().__init__(
@@ -291,13 +288,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         self.has_server_registered = False
         self._skip_check_method_available = skip_check_method_available
         self._message_parsers = message_parsers if message_parsers else MessageParsers()
-        self._services_module_name = {}
         self._service_methods_meta: Dict[str, Dict[str, MethodMetaData]] = {}
-
-        self._unary_unary_handler = {}
-        self._unary_stream_handler = {}
-        self._stream_unary_handler = {}
-        self._stream_stream_handler = {}
 
     @classmethod
     async def create(cls, endpoint: str, **kwargs) -> "BaseAsyncGrpcClient":
@@ -309,7 +300,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
         raise NotImplementedError()
 
     async def check_method_available(
-        self, service: str, method: str, method_type: MethodType = None
+        self, service: str, method: str, method_type: Optional[MethodType] = None
     ):
         if self._skip_check_method_available:
             return True
@@ -353,7 +344,7 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
                 input_type = GetMessageClass(method_desc.input_type)
                 output_type = GetMessageClass(method_desc.output_type)
             else:
-                msg_factory = message_factory.MessageFactory(method_proto)
+                msg_factory = message_factory.MessageFactory(self._desc_pool)
                 input_type = msg_factory.GetPrototype(method_desc.input_type)
                 output_type = msg_factory.GetPrototype(method_desc.output_type)
 
@@ -511,7 +502,7 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
         lazy=True,
         ssl=False,
         compression=None,
-        message_parsers: MessageParsersProtocol = None,
+        message_parsers: Optional[MessageParsersProtocol] = None,
         **kwargs,
     ):
         super().__init__(
@@ -694,7 +685,9 @@ class ServiceClient:
 
 AsyncClient = ReflectionAsyncClient
 
-_cached_clients = {}  # Dict[str, AsyncClient] type (for 3.6,3.7 compatibility https://bugs.python.org/issue34939)
+_cached_clients: Dict[
+    str, Union[BaseAsyncClient, StubAsyncClient, ReflectionAsyncClient]
+] = {}  # Dict[str, AsyncClient] type (for 3.6,3.7 compatibility https://bugs.python.org/issue34939)
 
 
 def get_by_endpoint(endpoint, service_descriptors=None, **kwargs) -> AsyncClient:
@@ -706,7 +699,7 @@ def get_by_endpoint(endpoint, service_descriptors=None, **kwargs) -> AsyncClient
             )
         else:
             _cached_clients[endpoint] = AsyncClient(endpoint, **kwargs)
-    return _cached_clients[endpoint]
+    return _cached_clients[endpoint]  # type: ignore[return-value]
 
 
 def reset_cached_async_client(endpoint=None):
