@@ -1,5 +1,4 @@
 import logging
-import sys
 from enum import Enum
 from functools import partial
 from typing import (
@@ -10,12 +9,10 @@ from typing import (
     NamedTuple,
     Optional,
     Tuple,
-    TypeVar,
     Union,
 )
 
 import grpc
-import warnings
 from google.protobuf import descriptor_pb2, message_factory
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf.descriptor import MethodDescriptor, ServiceDescriptor
@@ -25,26 +22,15 @@ from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 
 from .utils import describe_descriptor, load_data
 
-if sys.version_info >= (3, 8):
-    import importlib.metadata
-    from typing import (
-        Protocol,
-        TypedDict,  # pylint: disable=no-name-in-module
-    )
+import importlib.metadata
+from typing import (
+    Protocol,
+    TypedDict,  # pylint: disable=no-name-in-module
+)
 
-    def get_metadata(package_name: str):
-        return importlib.metadata.version(package_name)
-else:
-    import pkg_resources
-    from typing_extensions import Protocol, TypedDict
 
-    warnings.warn(
-        "Support for Python 3.7 is deprecated and will be removed in version 0.1.19",
-        stacklevel=1,
-    )
-
-    def get_metadata(package_name: str):
-        return pkg_resources.get_distribution(package_name).version
+def get_metadata(package_name: str):
+    return importlib.metadata.version(package_name)
 
 
 # Import GetMessageClass if protobuf version supports it
@@ -183,13 +169,13 @@ class MessageParsers(MessageParsersProtocol):
 
 
 class CustomArgumentParsers(MessageParsersProtocol):
-    _message_to_dict_kwargs: Dict[str, Any]
-    _parse_dict_kwargs: Dict[str, Any]
+    _message_to_dict_kwargs: Optional[Dict[str, Any]]
+    _parse_dict_kwargs: Optional[Dict[str, Any]]
 
     def __init__(
         self,
-        message_to_dict_kwargs: Dict[str, Any] = None,
-        parse_dict_kwargs: Dict[str, Any] = None,
+        message_to_dict_kwargs: Optional[Dict[str, Any]] = None,
+        parse_dict_kwargs: Optional[Dict[str, Any]] = None,
     ):
         self._message_to_dict_kwargs = message_to_dict_kwargs or {}
         self._parse_dict_kwargs = parse_dict_kwargs or {}
@@ -252,10 +238,7 @@ class MethodMetaData(NamedTuple):
             return self.parsers.parse_stream_responses
 
 
-IS_REQUEST_STREAM = TypeVar("IS_REQUEST_STREAM")
-IS_RESPONSE_STREAM = TypeVar("IS_RESPONSE_STREAM")
-
-MethodTypeMatch: Dict[Tuple[IS_REQUEST_STREAM, IS_RESPONSE_STREAM], MethodType] = {
+MethodTypeMatch: Dict[Tuple[bool, bool], MethodType] = {
     (False, False): MethodType.UNARY_UNARY,
     (True, False): MethodType.STREAM_UNARY,
     (False, True): MethodType.UNARY_STREAM,
@@ -273,7 +256,7 @@ class BaseGrpcClient(BaseClient):
         ssl=False,
         compression=None,
         skip_check_method_available=False,
-        message_parsers: MessageParsersProtocol = None,
+        message_parsers: Optional[MessageParsersProtocol] = None,
         **kwargs,
     ):
         super().__init__(
@@ -284,23 +267,19 @@ class BaseGrpcClient(BaseClient):
             compression=compression,
             **kwargs,
         )
-        self._service_names: list = None
+        self._service_names: Optional[List] = None
         self._lazy = lazy
         self.has_server_registered = False
         self._skip_check_method_available = skip_check_method_available
         self._message_parsers = message_parsers if message_parsers else MessageParsers()
-        self._services_module_name = {}
         self._service_methods_meta: Dict[str, Dict[str, MethodMetaData]] = {}
-
-        self._unary_unary_handler = {}
-        self._unary_stream_handler = {}
-        self._stream_unary_handler = {}
-        self._stream_stream_handler = {}
 
     def _get_service_names(self):
         raise NotImplementedError()
 
-    def check_method_available(self, service, method, method_type: MethodType = None):
+    def check_method_available(
+        self, service, method, method_type: Optional[MethodType] = None
+    ):
         if self._skip_check_method_available:
             return True
         if not self.has_server_registered:
@@ -340,7 +319,7 @@ class BaseGrpcClient(BaseClient):
                 input_type = GetMessageClass(method_desc.input_type)
                 output_type = GetMessageClass(method_desc.output_type)
             else:
-                msg_factory = message_factory.MessageFactory(method_proto)
+                msg_factory = message_factory.MessageFactory(self._desc_pool)
                 input_type = msg_factory.GetPrototype(method_desc.input_type)
                 output_type = msg_factory.GetPrototype(method_desc.output_type)
 
@@ -661,10 +640,10 @@ class ServiceClient:
 
 Client = ReflectionClient
 
-_cached_clients = {}  # Dict[str, Client] type (for 3.6,3.7 compatibility https://bugs.python.org/issue34939)
+_cached_clients: Dict[str, Union[StubClient, ReflectionClient]] = {}
 
 
-def get_by_endpoint(endpoint, service_descriptors=None, **kwargs) -> Client:
+def get_by_endpoint(endpoint: str, service_descriptors=None, **kwargs) -> Client:
     global _cached_clients
     if endpoint not in _cached_clients:
         if service_descriptors:
@@ -672,8 +651,8 @@ def get_by_endpoint(endpoint, service_descriptors=None, **kwargs) -> Client:
                 endpoint, service_descriptors=service_descriptors, **kwargs
             )
         else:
-            _cached_clients[endpoint] = Client(endpoint, **kwargs)
-    return _cached_clients[endpoint]
+            _cached_clients[endpoint] = ReflectionClient(endpoint, **kwargs)
+    return _cached_clients[endpoint]  # type: ignore[return-value]
 
 
 def reset_cached_client(endpoint=None):

@@ -1,6 +1,7 @@
 # grpc_requests
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 [![PyPI](https://img.shields.io/pypi/v/grpc-requests?style=flat-square)](https://pypi.org/project/grpc-requests)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/grpc-requests?style=flat-square)](https://pypi.org/project/grpc-requests)
 [![PyPI download month](https://img.shields.io/pypi/dm/grpc-requests?style=flat-square)](https://pypi.org/project/grpc-requests)
@@ -60,7 +61,9 @@ usage scenarioes, and the [unit tests](./src/tests/) are also a useful reference
 Contributions from the community are welcomed and greatly appreciated.
 
 Before opening a PR, [tests.sh](./tests.sh) can be used to ensure the contribution passes
-linting and unit test checks.
+linting and unit test checks. You can also run [complexity.sh](./complexity.sh) to use
+[radon](https://pypi.org/project/radon/) to look at the cyclomatic complexity,
+maintainability index, and Halstead effort and difficulty of files.
 
 PRs should be targeted to merge with the `develop` branch. When opening a PR,
 please assign it to a maintainer for review. The maintainers will take it from

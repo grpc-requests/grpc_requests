@@ -7,11 +7,11 @@ on:
       - master
 
 jobs:
-  deploy:
+  run_tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ '3.7', '3.8', '3.9', '3.10', '3.11', '3.12' ]
+        python-version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -27,6 +27,9 @@ jobs:
         run: |
           ruff check src/grpc_requests/*.py src/tests/*.py --statistics --config ruff.toml
           ruff format src/grpc_requests/*.py src/tests/*.py --check --config ruff.toml
+      - name: Typecheck with mypy
+        run: |
+          mypy src/grpc_requests/*.py
       - name: Test with pytest
         run: |
           pytest --cov-report=xml --cov=src/grpc_requests
