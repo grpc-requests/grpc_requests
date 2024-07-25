@@ -579,7 +579,9 @@ class ReflectionAsyncClient(BaseAsyncGrpcClient):
                             dep_file_name
                         )
                         if not dep_descs:
-                            raise ValueError(f"Required dependency {dep_file_name} not available.")
+                            raise ValueError(
+                                f"Required dependency {dep_file_name} not available."
+                            )
                         dep_desc = dep_descs[0]
                         if len(dep_descs) > 1:
                             file_descriptors += dep_descs[1:]
