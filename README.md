@@ -19,7 +19,7 @@ from grpc_requests import Client
 client = Client.get_by_endpoint("localhost:50051")
 assert client.service_names == ["helloworld.Greeter"]
 
-request_data = {"name": "sinsky"} 
+request_data = {"name": "sinsky"}
 say_hello_response = client.request("helloworld.Greeter", "SayHello", request_data)
 assert say_hello_response ==  {"message":"Hello sinsky!"}
 ```
@@ -60,14 +60,27 @@ usage scenarioes, and the [unit tests](./src/tests/) are also a useful reference
 
 Contributions from the community are welcomed and greatly appreciated.
 
-Before opening a PR, [tests.sh](./tests.sh) can be used to ensure the contribution passes
-linting and unit test checks. You can also run [complexity.sh](./complexity.sh) to use
+Before opening a PR, running `python -m nox` can be used to ensure the contribution passes
+linting and unit test checks for all supported versions of Python and protobuf.
+You can also run [complexity.sh](./complexity.sh) to use
 [radon](https://pypi.org/project/radon/) to look at the cyclomatic complexity,
 maintainability index, and Halstead effort and difficulty of files.
 
 PRs should be targeted to merge with the `develop` branch. When opening a PR,
 please assign it to a maintainer for review. The maintainers will take it from
 there.
+
+## Compatibility
+
+`grpc_requests` currently does its best to support versions of Python and
+protobuf that are within their support lifetimes. You may find that other versions
+of dependencies work with the library, but this should be treated as a happy accident.
+
+For Python, we target versions that are in the security and bugfix phases.
+For protobuf, we target versions that in their public support phase.
+
+[Python's support matrix](https://devguide.python.org/versions/)
+[Protobuf's support matrix](https://protobuf.dev/support/version-support/#python)
 
 ## Questions, Comments, Issues?
 

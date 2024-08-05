@@ -1,16 +1,11 @@
--r requirements.txt
-setuptools>=59.7.0
-wheel>=0.38.4
-twine>=4.0.2
-flake8>=5.0.4
+grpcio >= 1.60.1
+grpcio-reflection >= 1.60.1
+google-api-core>=2.11.1
+cryptography>=41.0.7
 pytest-cov>=4.0.0
 pytest-asyncio>=0.15.1
 aiounittest>=1.4.2
 grpc-interceptor>=0.15.4
-ruff>=0.1.7
-grpcio-tools>=1.60.1
 grpc-stubs >= 1.53.0
 types-protobuf>=5.26.0
-radon>=6.0.1
 mypy>=1.10.0
-nox>=2024.4.15
