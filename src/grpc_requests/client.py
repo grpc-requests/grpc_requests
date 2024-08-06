@@ -33,9 +33,7 @@ def get_metadata(package_name: str):
     return importlib.metadata.version(package_name)
 
 
-# Import GetMessageClass if protobuf version supports it
 protobuf_version = get_metadata("protobuf").split(".")
-print(protobuf_version)
 get_message_class_supported = (
     int(protobuf_version[0]) >= 4 and int(protobuf_version[1]) >= 22
 )

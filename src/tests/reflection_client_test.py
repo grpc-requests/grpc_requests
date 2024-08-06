@@ -2,6 +2,7 @@ import logging
 
 import grpc
 import pytest
+import importlib.metadata
 from google.protobuf import descriptor_pb2, descriptor_pool
 from google.protobuf.descriptor import MethodDescriptor
 from google.protobuf.json_format import ParseError
@@ -18,6 +19,10 @@ Test cases for reflection based client
 """
 
 logger = logging.getLogger("name")
+
+def use_always_print():
+    protobuf_version = importlib.metadata.version("protobuf").split(".")
+    return protobuf_version[0] >= "5" and protobuf_version[1] >= "0"
 
 
 @pytest.fixture(scope="module")
@@ -60,6 +65,9 @@ def helloworld_empty_reflection_client():
 
 @pytest.fixture(scope="module")
 def helloworld_empty_reflection_client_custom_parsers():
+    default_fields_method = "including_default_value_fields"
+    if use_always_print():
+        default_fields_method = "always_print_fields_with_no_presence"
     try:
         # Don't use get_by_endpoint here so we don't cache parsers
         client = Client(
@@ -67,7 +75,7 @@ def helloworld_empty_reflection_client_custom_parsers():
             message_parsers=CustomArgumentParsers(
                 message_to_dict_kwargs={
                     "preserving_proto_field_name": True,
-                    "including_default_value_fields": True,
+                    default_fields_method: True,
                 }
             ),
         )
