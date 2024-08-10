@@ -6,6 +6,3 @@ pytest-cov>=4.0.0
 pytest-asyncio>=0.15.1
 aiounittest>=1.4.2
 grpc-interceptor>=0.15.4
-grpc-stubs >= 1.53.0
-types-protobuf>=5.26.0
-mypy>=1.10.0

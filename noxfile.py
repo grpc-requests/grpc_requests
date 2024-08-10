@@ -15,3 +15,10 @@ def tests(session, protobuf):
     session.install(f"protobuf=={protobuf}")
     session.run("pip", "list")
     session.run("pytest")
+
+@nox.session
+def lint(session):
+    session.install("-r", "requirements-lint.txt")
+    session.run("ruff", "check", "src/grpc_requests/", "--statistics", "--config", "ruff.toml")
+    session.run("ruff", "format", "src/grpc_requests/", "--check", "--config", "ruff.toml")
+    session.run("mypy", "src/grpc_requests/")

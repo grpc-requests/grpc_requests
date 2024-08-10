@@ -7,11 +7,30 @@ on:
       - master
 
 jobs:
+  run_checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-lint.txt
+      - name: Lint and check formatting with ruff
+        run: |
+          ruff check src/grpc_requests/*.py src/tests/*.py --statistics --config ruff.toml
+          ruff format src/grpc_requests/*.py src/tests/*.py --check --config ruff.toml
+      - name: Typecheck with mypy
+        run: |
+          mypy src/grpc_requests/*.py
   run_tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        protobuf-version: ["4.25.4", "5.27.3"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -21,15 +40,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
           pip install -e .
-      - name: Lint and check formatting with ruff
-        run: |
-          ruff check src/grpc_requests/*.py src/tests/*.py --statistics --config ruff.toml
-          ruff format src/grpc_requests/*.py src/tests/*.py --check --config ruff.toml
-      - name: Typecheck with mypy
-        run: |
-          mypy src/grpc_requests/*.py
+          pip install -r requirements-test.txt
+          pip install protobuf==${{ matrix.protobuf-version }}
       - name: Test with pytest
         run: |
           pytest --cov-report=xml --cov=src/grpc_requests
