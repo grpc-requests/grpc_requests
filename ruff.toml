@@ -1,5 +1,8 @@
-# Continue supporting python 3.7
-target-version = "py37"
+target-version = "py38"
+
+# Exclude compiled Protobuf files
+exclude = ["**/*_pb2.py", "**/*_pb2_grpc.py", "**/*_pb2.pyi", "**/*_pb2_grpc.pyi"]
+
 
 [lint]
 # Bugbear Rules
@@ -14,6 +17,3 @@ unfixable = ["B"]
 [lint.per-file-ignores]
 "__init__.py" = ["E402"]
 "**/{tests,docs,tools}/*" = ["E402"]
-
-
-
