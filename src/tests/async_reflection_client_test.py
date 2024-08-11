@@ -24,6 +24,7 @@ Test cases for async reflection based client
 logger = logging.getLogger("name")
 reflection_service_name = "grpc.reflection.v1alpha.ServerReflection"
 
+
 def use_always_print():
     protobuf_version = importlib.metadata.version("protobuf").split(".")
     return protobuf_version[0] >= "5" and protobuf_version[1] >= "0"
@@ -295,7 +296,7 @@ async def test_stream_unary_defaults():
         [{"name": name} for name in name_list]
     )
     assert isinstance(response, dict)
-    assert response == {}
+    assert response == {"message": "Hello, sinsky viridianforge jack harry!"}
 
 
 @pytest.mark.asyncio
@@ -319,7 +320,7 @@ async def test_stream_unary_empty():
         [{"name": name} for name in name_list]
     )
     assert isinstance(response, dict)
-    assert response == {"message": ""}
+    assert response == {"message": "Hello, sinsky viridianforge jack harry!"}
 
 
 @pytest.mark.asyncio

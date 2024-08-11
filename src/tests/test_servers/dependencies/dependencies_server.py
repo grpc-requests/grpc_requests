@@ -9,8 +9,8 @@ from .dependencies_pb2 import HelloReply, DESCRIPTOR
 from .dependency1_pb2 import Dependency1
 from .dependency2_pb2 import Dependency2
 
-class Greeter(GreeterServicer):
 
+class Greeter(GreeterServicer):
     def SayHello(self, request, context):
         """
         Unary-Unary
@@ -19,9 +19,13 @@ class Greeter(GreeterServicer):
         if context.invocation_metadata():
             for key, value in context.invocation_metadata():
                 if key == "password" and value == "12345":
-                    return HelloReply(message=f"Hello, {request.name}, password accepted!")
+                    return HelloReply(
+                        message=f"Hello, {request.name}, password accepted!"
+                    )
                 if key == "interceptor" and value == "true":
-                    return HelloReply(message=f"Hello, {request.name}, interceptor accepted!")
+                    return HelloReply(
+                        message=f"Hello, {request.name}, interceptor accepted!"
+                    )
         return HelloReply(message=f"Hello, {request.name}!")
 
     def SayHelloGroup(self, request, context):
@@ -39,9 +43,7 @@ class Greeter(GreeterServicer):
         Sends a HelloReply based on the name recieved from a stream of
         HelloRequests.
         """
-        names = []
-        for request in request_iterator:
-            names.append(request.name)
+        names = [request.name for request in request_iterator]
         names_string = " ".join(names)
         return HelloReply(message=f"Hello, {names_string}!")
 
@@ -60,24 +62,24 @@ class Greeter(GreeterServicer):
         """
         return Dependency1(field2=Dependency2)
 
-class HelloWorldServer():
 
+class HelloWorldServer:
     server = None
 
     def __init__(self, port: str):
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         add_GreeterServicer_to_server(Greeter(), self.server)
         SERVICE_NAMES = (
-            DESCRIPTOR.services_by_name['Greeter'].full_name,
+            DESCRIPTOR.services_by_name["Greeter"].full_name,
             reflection.SERVICE_NAME,
         )
         reflection.enable_server_reflection(SERVICE_NAMES, self.server)
-        self.server.add_insecure_port(f'[::]:{port}')
+        self.server.add_insecure_port(f"[::]:{port}")
 
     def serve(self):
-        logging.debug('Server starting...')
+        logging.debug("Server starting...")
         self.server.start()
-        logging.debug('Server running...')
+        logging.debug("Server running...")
         self.server.wait_for_termination()
 
     def shutdown(self):

@@ -1,5 +1,6 @@
 import logging
 from concurrent import futures
+from typing import Union
 
 import grpc
 from grpc_reflection.v1alpha import reflection
@@ -41,9 +42,7 @@ class Greeter(GreeterServicer):
         Sends a HelloReply based on the name recieved from a stream of
         HelloRequests.
         """
-        names = []
-        for request in request_iterator:
-            names.append(request.name)
+        names = [request.name for request in request_iterator]
         names_string = " ".join(names)
         return HelloReply(message=f"Hello, {names_string}!")
 
@@ -70,7 +69,7 @@ class EmptyGreeter(GreeterServicer):
         Streams a series of HelloReplies based on the names in a HelloRequest.
         """
         names = request.name
-        for name in names.split():
+        for _ in names.split():
             yield HelloReply()
 
     def HelloEveryone(self, request_iterator, context):
@@ -79,24 +78,25 @@ class EmptyGreeter(GreeterServicer):
         Sends a HelloReply based on the name recieved from a stream of
         HelloRequests.
         """
-        names = []
-        for request in request_iterator:
-            names.append(request.name)
-        return HelloReply()
+        names = [request.name for request in request_iterator]
+        names_string = " ".join(names)
+        return HelloReply(message=f"Hello, {names_string}!")
 
     def SayHelloOneByOne(self, request_iterator, context):
         """
         Stream-Stream
         Streams HelloReplies in response to a stream of HelloRequests.
         """
-        for request in request_iterator:
+        for _ in request_iterator:
             yield HelloReply()
 
 
 class HelloWorldServer:
     server = None
 
-    def __init__(self, port: str, servicer: Greeter = Greeter()):
+    def __init__(self, port: str, servicer: Union[Greeter, None] = None):
+        if servicer is None:
+            servicer = Greeter()
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         add_GreeterServicer_to_server(servicer, self.server)
         SERVICE_NAMES = (
