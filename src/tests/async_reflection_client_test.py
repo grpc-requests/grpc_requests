@@ -1,4 +1,5 @@
 import logging
+import importlib.metadata
 
 import grpc.aio
 import pytest
@@ -22,6 +23,11 @@ Test cases for async reflection based client
 
 logger = logging.getLogger("name")
 reflection_service_name = "grpc.reflection.v1alpha.ServerReflection"
+
+
+def use_always_print():
+    protobuf_version = importlib.metadata.version("protobuf").split(".")
+    return protobuf_version[0] >= "5" and protobuf_version[1] >= "0"
 
 
 @pytest.mark.asyncio
@@ -259,13 +265,16 @@ async def test_register_file_descriptors_incomplete_dependencies():
 
 @pytest.mark.asyncio
 async def test_unary_unary_defaults():
+    default_fields_method = "including_default_value_fields"
+    if use_always_print():
+        default_fields_method = "always_print_fields_with_no_presence"
     client = AsyncClient(
         "localhost:50054",
         descriptor_pool=descriptor_pool.DescriptorPool(),
         message_parsers=CustomArgumentParsers(
             message_to_dict_kwargs={
                 "preserving_proto_field_name": True,
-                "including_default_value_fields": True,
+                default_fields_method: True,
             }
         ),
     )
@@ -287,18 +296,21 @@ async def test_stream_unary_defaults():
         [{"name": name} for name in name_list]
     )
     assert isinstance(response, dict)
-    assert response == {}
+    assert response == {"message": "Hello, sinsky viridianforge jack harry!"}
 
 
 @pytest.mark.asyncio
 async def test_stream_unary_empty():
+    default_fields_method = "including_default_value_fields"
+    if use_always_print():
+        default_fields_method = "always_print_fields_with_no_presence"
     client = AsyncClient(
         "localhost:50054",
         descriptor_pool=descriptor_pool.DescriptorPool(),
         message_parsers=CustomArgumentParsers(
             message_to_dict_kwargs={
                 "preserving_proto_field_name": True,
-                "including_default_value_fields": True,
+                default_fields_method: True,
             }
         ),
     )
@@ -308,18 +320,21 @@ async def test_stream_unary_empty():
         [{"name": name} for name in name_list]
     )
     assert isinstance(response, dict)
-    assert response == {"message": ""}
+    assert response == {"message": "Hello, sinsky viridianforge jack harry!"}
 
 
 @pytest.mark.asyncio
 async def test_stream_stream_empty():
+    default_fields_method = "including_default_value_fields"
+    if use_always_print():
+        default_fields_method = "always_print_fields_with_no_presence"
     client = AsyncClient(
         "localhost:50054",
         descriptor_pool=descriptor_pool.DescriptorPool(),
         message_parsers=CustomArgumentParsers(
             message_to_dict_kwargs={
                 "preserving_proto_field_name": True,
-                "including_default_value_fields": True,
+                default_fields_method: True,
             }
         ),
     )

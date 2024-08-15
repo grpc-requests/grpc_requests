@@ -33,7 +33,6 @@ def get_metadata(package_name: str):
     return importlib.metadata.version(package_name)
 
 
-# Import GetMessageClass if protobuf version supports it
 protobuf_version = get_metadata("protobuf").split(".")
 get_message_class_supported = (
     int(protobuf_version[0]) >= 4 and int(protobuf_version[1]) >= 22
@@ -489,7 +488,7 @@ class ReflectionClient(BaseGrpcClient):
 
     def _reflection_single_request(self, request):
         results = list(self._reflection_request(request))
-        if len(results) > 1:
+        if len(results) != 1:
             raise ValueError("response has more than one result")
         return results[0]
 
@@ -551,6 +550,10 @@ class ReflectionClient(BaseGrpcClient):
                     # Otherwise get it from the client
                     if not dep_desc:
                         dep_descs = self.get_file_descriptors_by_name(dep_file_name)
+                        if not dep_descs:
+                            raise ValueError(
+                                f"Required dependency {dep_file_name} not available."
+                            )
                         dep_desc = dep_descs[0]
                         if len(dep_descs) > 1:
                             file_descriptors += dep_descs[1:]

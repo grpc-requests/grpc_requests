@@ -3,47 +3,49 @@ from grpc_reflection.v1alpha import reflection
 
 import grpc
 import logging
-from .client_tester_pb2_grpc import ClientTesterServicer, add_ClientTesterServicer_to_server
+from .client_tester_pb2_grpc import (
+    ClientTesterServicer,
+    add_ClientTesterServicer_to_server,
+)
 from .client_tester_pb2 import TestResponse, DESCRIPTOR
 
-class ClientTester(ClientTesterServicer):
 
+class ClientTester(ClientTesterServicer):
     def TestUnaryUnary(self, request, context):
         return TestResponse(average=0.0, feedback="Acceptable")
 
     def TestUnaryStream(self, request, context):
-        for reading in request.readings:
+        for _ in request.readings:
             yield TestResponse(average=0.0, feedback="Acceptable")
 
     def TestStreamUnary(self, request_iterator, context):
-        for request in request_iterator:
+        for _ in request_iterator:
             pass
         return TestResponse(average=0.0, feedback="Acceptable")
 
     def TestStreamStream(self, request_iterator, context):
         for request in request_iterator:
-            for reading in request.readings:
+            for _ in request.readings:
                 yield TestResponse(average=0.0, feedback="Acceptable")
 
 
-class ClientTesterServer():
-
+class ClientTesterServer:
     server = None
 
     def __init__(self, port: str):
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         add_ClientTesterServicer_to_server(ClientTester(), self.server)
         SERVICE_NAMES = (
-            DESCRIPTOR.services_by_name['ClientTester'].full_name,
+            DESCRIPTOR.services_by_name["ClientTester"].full_name,
             reflection.SERVICE_NAME,
         )
         reflection.enable_server_reflection(SERVICE_NAMES, self.server)
-        self.server.add_insecure_port(f'[::]:{port}')
+        self.server.add_insecure_port(f"[::]:{port}")
 
     def serve(self):
-        logging.debug('Server starting...')
+        logging.debug("Server starting...")
         self.server.start()
-        logging.debug('Server running...')
+        logging.debug("Server running...")
         self.server.wait_for_termination()
 
     def shutdown(self):
