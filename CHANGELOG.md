@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.19](https://github.com/grpc-requests/grpc_requests/releases/tag/v0.1.19) - 2024-07-xx
+## [0.1.20](https://github.com/grpc-requests/grpc_requests/releases/tag/v0.1.20) - 2024-08-15
+
+### Added
+
+- Noxfile for testing combinations of supported versions Python and protobuf
+- Specifications around support targets for Python and protobuf for the library
+
+### Fixed
+
+- Fixed a bug wherein attempting to retrieve a dependency of a FileDescriptor could
+  result thrown an exception if the dependency was not being served via reflection by
+  the server.
+
+## [0.1.19](https://github.com/grpc-requests/grpc_requests/releases/tag/v0.1.19) - 2024-07-18
 
 ### Added
 
