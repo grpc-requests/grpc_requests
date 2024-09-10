@@ -45,6 +45,7 @@ jobs:
           pip install protobuf==${{ matrix.protobuf-version }}
           if [ "${{ matrix.protobuf-version }}" = "4.25.4" ]; then
             pip install grpcio==1.65.5
+            pip install grpcio-reflection==1.65.5
           fi
       - name: Test with pytest
         run: |
