@@ -83,6 +83,13 @@ For protobuf, we target versions that in their public support phase.
 [Python's support matrix](https://devguide.python.org/versions/)
 [Protobuf's support matrix](https://protobuf.dev/support/version-support/#python)
 
+### Protobuf Compatibility
+
+The maintainers of `grpc_requests` have found that protobuf `4.25.4` is not compatible
+with verisons `>=1.66.0` of both `grpcio` and `grpcio-reflection`. If your use case
+needs `4.25.4` of protobuf, we recommend sticking to verison `1.65.x` of `grpcio` and
+`grpcio-reflection`.
+
 ## Questions, Comments, Issues?
 
 For questions, please start a conversation on the [discussions page](https://github.com/wesky93/grpc_requests/discussions)!

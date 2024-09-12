@@ -12,6 +12,11 @@ import nox
 def test(session, protobuf):
     session.install("-e",".")
     session.install("-r", "requirements-test.txt")
+    # grpcio after version 1.65 is not compatible with protobuf 4.25.4
+    if protobuf == "4.25.4":
+        session.install("grpcio==1.65.5")
+        session.install("grpcio-reflection==1.65.5")
+
     session.install(f"protobuf=={protobuf}")
     session.run("pytest")
 
