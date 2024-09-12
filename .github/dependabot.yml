@@ -6,6 +6,5 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "chore(deps):"
-    commit-prefix: "dependabot"
     labels:
       - "dependencies"
