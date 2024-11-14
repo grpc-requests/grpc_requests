@@ -1,4 +1,8 @@
 -r requirements.txt
+argcomplete
+colorlog
+packaging
+nox[uv]
 setuptools>=59.7.0
 wheel>=0.38.4
 twine>=4.0.2

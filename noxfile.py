@@ -6,8 +6,9 @@ import nox
     "python,protobuf",
     [
         (python, protobuf)
-        for python in ["3.8","3.9","3.10","3.11","3.12"]
-        for protobuf in ["4.25.4","5.27.3"]
+        for python in ["3.9","3.10","3.11","3.12", "3.13"]
+        for protobuf in ["4.25.4","5.28.3"]
+        if (python, protobuf) != ("3.13", "4.25.4")
     ]
 )
 def test(session, protobuf):
