@@ -92,7 +92,7 @@ class BaseClient:
         self.compression = compression
         self.channel_options = channel_options
         if ssl:
-            _credentials = {}
+            _credentials = None
             if credentials:
                 _credentials = {
                     k: load_data(v) if isinstance(v, str) else v
@@ -101,7 +101,7 @@ class BaseClient:
 
             self._channel = grpc.secure_channel(
                 endpoint,
-                grpc.ssl_channel_credentials(**_credentials),
+                grpc.ssl_channel_credentials(**_credentials),  # type: ignore
                 options=self.channel_options,
                 compression=self.compression,
             )

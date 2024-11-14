@@ -104,7 +104,7 @@ class BaseAsyncClient:
 
             self._channel = grpc.aio.secure_channel(
                 endpoint,
-                grpc.ssl_channel_credentials(**_credentials),
+                grpc.ssl_channel_credentials(**_credentials),  # type: ignore
                 options=self.channel_options,
                 compression=self.compression,
                 interceptors=interceptors,
