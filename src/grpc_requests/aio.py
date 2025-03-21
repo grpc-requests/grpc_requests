@@ -146,7 +146,7 @@ class BaseAsyncClient:
 class MessageParsersProtocol(Protocol):
     def parse_request_data(self, request_data, input_type): ...
 
-    async def parse_stream_requests(self, stream_requests_data: AsyncIterable, input_type): ...
+    async def parse_stream_requests(self, stream_requests_data: Iterable | AsyncIterable, input_type): ...
 
     async def parse_response(self, response): ...
 
@@ -159,9 +159,13 @@ class MessageParsers(MessageParsersProtocol):
         request = ParseDict(_data, input_type()) if isinstance(_data, dict) else _data
         return request
 
-    async def parse_stream_requests(self, stream_requests_data: AsyncIterable, input_type):
-        async for request_data in stream_requests_data:
-            yield self.parse_request_data(request_data or {}, input_type)
+    async def parse_stream_requests(self, stream_requests_data: Iterable | AsyncIterable, input_type):
+        if isinstance(stream_requests_data, Iterable):
+            for request_data in stream_requests_data:
+                yield self.parse_request_data(request_data or {}, input_type)
+        elif isinstance(stream_requests_data, AsyncIterable):
+            async for request_data in stream_requests_data:
+                yield self.parse_request_data(request_data or {}, input_type)
 
     async def parse_response(self, response):
         return MessageToDict(response, preserving_proto_field_name=True)
@@ -191,9 +195,13 @@ class CustomArgumentParsers(MessageParsersProtocol):
             request = _data
         return request
 
-    async def parse_stream_requests(self, stream_requests_data: AsyncIterable, input_type):
-        async for request_data in stream_requests_data:
-            yield self.parse_request_data(request_data or {}, input_type)
+    async def parse_stream_requests(self, stream_requests_data: Iterable | AsyncIterable, input_type):
+        if isinstance(stream_requests_data, Iterable):
+            for request_data in stream_requests_data:
+                yield self.parse_request_data(request_data or {}, input_type)
+        elif isinstance(stream_requests_data, AsyncIterable):
+            async for request_data in stream_requests_data:
+                yield self.parse_request_data(request_data or {}, input_type)
 
     async def parse_response(self, response):
         return MessageToDict(response, **self._message_to_dict_kwargs)
