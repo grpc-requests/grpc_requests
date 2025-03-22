@@ -18,6 +18,7 @@ def test(session, protobuf):
     if protobuf == "4.25.4":
         session.install("grpcio==1.65.5")
         session.install("grpcio-reflection==1.65.5")
+
     session.install(f"protobuf=={protobuf}")
     session.run("pytest")
 
