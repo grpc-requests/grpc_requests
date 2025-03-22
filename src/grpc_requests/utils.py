@@ -52,7 +52,7 @@ def describe_descriptor(descriptor: Descriptor, indent: int = 0) -> str:
     if descriptor.fields:
         description += f"\n{padding}Fields:"
         for field in descriptor.fields:
-            description += f"\n\t{padding}{field.name}: {FIELD_TYPES[field.type-1]}"
+            description += f"\n\t{padding}{field.name}: {FIELD_TYPES[field.type - 1]}"
 
     if descriptor.oneofs:
         description += f"\n{padding}Oneofs:"
@@ -86,5 +86,5 @@ def describe_oneof_descriptor(
     padding = "\t" * indent
     description = f"\n{padding}{oneof_descriptor.name}:"
     for field in oneof_descriptor.fields:
-        description += f"\n{padding}{field.name}: {FIELD_TYPES[field.type-1]}"
+        description += f"\n{padding}{field.name}: {FIELD_TYPES[field.type - 1]}"
     return description
