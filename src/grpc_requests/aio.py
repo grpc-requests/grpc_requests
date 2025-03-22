@@ -146,7 +146,9 @@ class BaseAsyncClient:
 class MessageParsersProtocol(Protocol):
     def parse_request_data(self, request_data, input_type): ...
 
-    async def parse_stream_requests(self, stream_requests_data: Iterable | AsyncIterable, input_type): ...
+    async def parse_stream_requests(
+        self, stream_requests_data: Union[Iterable, AsyncIterable], input_type
+    ): ...
 
     async def parse_response(self, response): ...
 
@@ -159,7 +161,9 @@ class MessageParsers(MessageParsersProtocol):
         request = ParseDict(_data, input_type()) if isinstance(_data, dict) else _data
         return request
 
-    async def parse_stream_requests(self, stream_requests_data: Iterable | AsyncIterable, input_type):
+    async def parse_stream_requests(
+        self, stream_requests_data: Union[Iterable, AsyncIterable], input_type
+    ):
         if isinstance(stream_requests_data, Iterable):
             for request_data in stream_requests_data:
                 yield self.parse_request_data(request_data or {}, input_type)
@@ -195,7 +199,9 @@ class CustomArgumentParsers(MessageParsersProtocol):
             request = _data
         return request
 
-    async def parse_stream_requests(self, stream_requests_data: Iterable | AsyncIterable, input_type):
+    async def parse_stream_requests(
+        self, stream_requests_data: Union[Iterable, AsyncIterable], input_type
+    ):
         if isinstance(stream_requests_data, Iterable):
             for request_data in stream_requests_data:
                 yield self.parse_request_data(request_data or {}, input_type)
