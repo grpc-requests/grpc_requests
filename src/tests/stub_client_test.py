@@ -68,7 +68,7 @@ def test_stream_unary(helloworld_stub_client):
         "helloworld.Greeter", "HelloEveryone", [{"name": name} for name in name_list]
     )
     assert isinstance(response, dict)
-    assert response == {"message": f'Hello, {" ".join(name_list)}!'}
+    assert response == {"message": f"Hello, {' '.join(name_list)}!"}
 
 
 def test_stream_stream(helloworld_stub_client):

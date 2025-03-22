@@ -126,7 +126,7 @@ async def test_stream_unary():
     )
     assert isinstance(response, dict)
     assert response == {
-        "message": f'Hello, {" ".join(["sinsky", "viridianforge", "jack", "harry"])}!'
+        "message": f"Hello, {' '.join(['sinsky', 'viridianforge', 'jack', 'harry'])}!"
     }
 
 
