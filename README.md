@@ -103,4 +103,3 @@ For feature requests or bugs, please open an [issue](https://github.com/wesky93/
 
 - sinsky - [wesky93](https://github.com/wesky93)
 - Wayne Manselle - [ViridianForge](https://viridianforge.tech)
-  r
