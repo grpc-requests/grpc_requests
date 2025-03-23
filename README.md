@@ -90,8 +90,8 @@ with verisons `>=1.66.0` of both `grpcio` and `grpcio-reflection`. If your use c
 needs `4.25.4` of protobuf, we recommend sticking to verison `1.65.x` of `grpcio` and
 `grpcio-reflection`.
 
-The maintainers have also noted that under Python `3.13` `grpc_requests` will work 
-only with protobuf version `5.28.3` and above.
+The maintainers have also noted that under Python `3.13` `grpc_requests` will work
+only with protobuf version `5.29.4` and above.
 
 ## Questions, Comments, Issues?
 
@@ -103,4 +103,4 @@ For feature requests or bugs, please open an [issue](https://github.com/wesky93/
 
 - sinsky - [wesky93](https://github.com/wesky93)
 - Wayne Manselle - [ViridianForge](https://viridianforge.tech)
-r
+  r
