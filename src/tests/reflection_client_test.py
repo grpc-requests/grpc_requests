@@ -39,7 +39,9 @@ def helloworld_reflection_client():
 def helloworld_reflection_client_with_interceptor():
     try:
         # Don't use get_by_endpoint here, because interceptors are not cached. Consider caching kwargs too
-        client = Client("localhost:50051", interceptors=[MetadataClientInterceptor()])
+        client = Client(
+            "localhost:50051", interceptors=[MetadataClientInterceptor(token="12345")]
+        )
         yield client
     except:  # noqa: E722
         pytest.fail("Could not connect to local HelloWorld server")
@@ -85,7 +87,7 @@ def helloworld_empty_reflection_client_custom_parsers():
         pytest.fail("Could not connect to local Empty HelloWorld server")
 
 
-def test_metadata_usage(helloworld_reflection_client):
+def test_metadata_usage_with_client(helloworld_reflection_client):
     response = helloworld_reflection_client.request(
         "helloworld.Greeter",
         "SayHello",
@@ -103,7 +105,7 @@ def test_interceptor_usage(helloworld_reflection_client_with_interceptor):
         {"name": "sinsky"},
     )
     assert isinstance(response, dict)
-    assert response == {"message": "Hello, sinsky, interceptor accepted!"}
+    assert response == {"message": "Hello, sinsky, password accepted!"}
 
 
 def test_methods_meta(helloworld_reflection_client):

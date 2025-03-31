@@ -45,20 +45,20 @@ async def test_unary_unary():
 async def test_unary_unary_interceptor():
     client = AsyncClient(
         "localhost:50051",
-        interceptors=[AsyncMetadataClientInterceptor()],
+        interceptors=[AsyncMetadataClientInterceptor(token="12345")],
         descriptor_pool=descriptor_pool.DescriptorPool(),
     )
     greeter_service = await client.service("helloworld.Greeter")
     response = await greeter_service.SayHello({"name": "sinsky"})
     assert isinstance(response, dict)
-    assert response == {"message": "Hello, sinsky, interceptor accepted!"}
+    assert response == {"message": "Hello, sinsky, password accepted!"}
 
 
 @pytest.mark.asyncio
 async def test_methods_meta():
     client = AsyncClient(
         "localhost:50051",
-        interceptors=[AsyncMetadataClientInterceptor()],
+        interceptors=[AsyncMetadataClientInterceptor(token="12345")],
         descriptor_pool=descriptor_pool.DescriptorPool(),
     )
     greeter_service = await client.service("helloworld.Greeter")
