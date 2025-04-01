@@ -17,7 +17,7 @@ in particular scenarios.
 ## Interceptors
 
 Clients can be instantiated with interceptors to accomplish a variety of tasks,
-such authentication.
+such as authentication.
 
 Interceptors are provided to clients as an array of Interceptors when a client is instantiated.
 
@@ -27,14 +27,14 @@ Interceptors are provided to clients as an array of Interceptors when a client i
 from grpc_requests import Client
 
 class MetadataInterceptor(grpc.UnaryUnaryClientInterceptor):
-    def __init__(self, token):
-        self.token = token
+    def __init__(self, metadata: List[Tuple[str, str]]):
+        self._metadata = metadata
 
     def intercept_unary_unary(self, continuation, client_call_details, request):
         new_details = ClientCallDetails(
             client_call_details.method,
             client_call_details.timeout,
-            [("Authorization", f"Bearer {self.token}")],
+            self._metadata,
             client_call_details.credentials,
             client_call_details.wait_for_ready,
             client_call_details.compression,

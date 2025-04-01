@@ -45,7 +45,7 @@ async def test_unary_unary():
 async def test_unary_unary_interceptor():
     client = AsyncClient(
         "localhost:50051",
-        interceptors=[AsyncMetadataClientInterceptor(token="12345")],
+        interceptors=[AsyncMetadataClientInterceptor(metadata=[("password", "12345")])],
         descriptor_pool=descriptor_pool.DescriptorPool(),
     )
     greeter_service = await client.service("helloworld.Greeter")
@@ -58,7 +58,7 @@ async def test_unary_unary_interceptor():
 async def test_methods_meta():
     client = AsyncClient(
         "localhost:50051",
-        interceptors=[AsyncMetadataClientInterceptor(token="12345")],
+        interceptors=[AsyncMetadataClientInterceptor(metadata=[("password", "12345")])],
         descriptor_pool=descriptor_pool.DescriptorPool(),
     )
     greeter_service = await client.service("helloworld.Greeter")

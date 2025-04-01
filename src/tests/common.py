@@ -1,10 +1,11 @@
 import grpc
 from grpc_interceptor import ClientCallDetails
+from typing import List, Tuple
 
 
 class MetadataClientInterceptor(grpc.UnaryUnaryClientInterceptor):
-    def __init__(self, token: str):
-        self.token = token
+    def __init__(self, metadata: List[Tuple[str, str]]):
+        self._metadata = metadata
 
     def intercept_unary_unary(
         self,
@@ -15,7 +16,7 @@ class MetadataClientInterceptor(grpc.UnaryUnaryClientInterceptor):
         new_details = ClientCallDetails(
             client_call_details.method,
             client_call_details.timeout,
-            [("password", f"{self.token}")],
+            self._metadata,
             client_call_details.credentials,
             client_call_details.wait_for_ready,
             client_call_details.compression,
@@ -25,14 +26,14 @@ class MetadataClientInterceptor(grpc.UnaryUnaryClientInterceptor):
 
 
 class AsyncMetadataClientInterceptor(grpc.aio.UnaryUnaryClientInterceptor):
-    def __init__(self, token: str):
-        self.token = token
+    def __init__(self, metadata: List[Tuple[str, str]]):
+        self._metadata = metadata
 
     async def intercept_unary_unary(self, continuation, client_call_details, request):
         new_details = grpc.aio.ClientCallDetails(
             client_call_details.method,
             client_call_details.timeout,
-            [("password", f"{self.token}")],
+            self._metadata,
             client_call_details.credentials,
             client_call_details.wait_for_ready,
         )

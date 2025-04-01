@@ -40,7 +40,8 @@ def helloworld_reflection_client_with_interceptor():
     try:
         # Don't use get_by_endpoint here, because interceptors are not cached. Consider caching kwargs too
         client = Client(
-            "localhost:50051", interceptors=[MetadataClientInterceptor(token="12345")]
+            "localhost:50051",
+            interceptors=[MetadataClientInterceptor(metadata=[("password", "12345")])],
         )
         yield client
     except:  # noqa: E722
