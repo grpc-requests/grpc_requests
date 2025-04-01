@@ -14,6 +14,36 @@ can be implemented.
 In addition, here are some simple examples of utilizing the grpc_requests library
 in particular scenarios.
 
+## Interceptors
+
+Clients can be instantiated with interceptors to accomplish a variety of tasks,
+such as authentication.
+
+Interceptors are provided to clients as an array of Interceptors when a client is instantiated.
+
+### Providing Authentication with a Metadata Interceptor
+
+```python
+from grpc_requests import Client
+
+class MetadataInterceptor(grpc.UnaryUnaryClientInterceptor):
+    def __init__(self, metadata: List[Tuple[str, str]]):
+        self._metadata = metadata
+
+    def intercept_unary_unary(self, continuation, client_call_details, request):
+        new_details = ClientCallDetails(
+            client_call_details.method,
+            client_call_details.timeout,
+            self._metadata,
+            client_call_details.credentials,
+            client_call_details.wait_for_ready,
+            client_call_details.compression,
+        )
+        return request, metadata
+
+client = Client("localhost:50051", interceptors=[MetadataInterceptor(my_bearer_token)])
+```
+
 ## Connecting to a server requiring authentication
 
 If connecting to a server requiring bearer authentication, that can be provided
@@ -116,11 +146,11 @@ greeter = await client.service("helloworld.Greeter")
 request_data = {"name": "sinsky"}
 result = await greeter.SayHello(request_data)
 
-results =[x async for x in await greeter.SayHelloGroup(request_data)] 
+results =[x async for x in await greeter.SayHelloGroup(request_data)]
 
 requests_data = [{"name": "sinsky"}]
 result = await greeter.HelloEveryone(requests_data)
-results = [x async for x in await greeter.SayHelloOneByOne(requests_data)]  
+results = [x async for x in await greeter.SayHelloOneByOne(requests_data)]
 ```
 
 ## Setting a Client's message_to_dict behavior
@@ -144,8 +174,10 @@ client = Client(
 [Review the json_format documentation for what kwargs are available to message_to_dict.](https://googleapis.dev/python/protobuf/latest/google/protobuf/json_format.html)
 
 ## Creating an async lazy client
+
 An async lazy client can be used to improve startup performance, because the client doesn't need to perform some actions (like service discovery and method registration) during initialization.
 You can choose whether to use a lazy client or a non-lazy client based on your program's specific requirements. If you're sure that you'll need to use all of the client's operations as soon as the client is created, then a non-lazy (eager) client might be more suitable. If you only need to use certain operations and you're not sure when you'll need to use them, then a lazy client might be a better choice.
+
 ```python
 from grpc_requests.aio import AsyncClient
 
@@ -157,7 +189,6 @@ client_nonlazy = AsyncClient("localhost:50051", lazy=False)
 await client_nonlazy.get_methods_meta("helloworld.Greeter")
 print(f"INFO: registered service methods length for non-lazy client: {len(client_nonlazy._service_methods_meta)}")
 ```
-
 
 ## Retrieving Information about a Server
 
