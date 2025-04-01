@@ -21,10 +21,6 @@ class Greeter(GreeterServicer):
                     return HelloReply(
                         message=f"Hello, {request.name}, password accepted!"
                     )
-                if key == "interceptor" and value == "true":
-                    return HelloReply(
-                        message=f"Hello, {request.name}, interceptor accepted!"
-                    )
         return HelloReply(message=f"Hello, {request.name}!")
 
     def SayHelloGroup(self, request, context):
