@@ -1,4 +1,6 @@
 from pathlib import Path
+from typing import Dict, Any
+
 from google.protobuf.descriptor import (
     Descriptor,
     EnumDescriptor,
@@ -34,6 +36,43 @@ def load_data(_path):
         data = f.read()
     return data
 
+
+def descriptor_to_json(descriptor: Descriptor, use_full_name: bool = False) -> Dict[str, Any]:
+    json_data = {}
+    for field in descriptor.fields:
+        field_name = field.full_name if use_full_name else field.name
+        field_value = get_default_value(field.type)
+        print_value = [field_value] if field.label == 3 else field_value
+        json_data[field_name] = print_value
+    for descriptor in descriptor.nested_types:
+        json_data[descriptor.name] = descriptor_to_json(descriptor)
+    for enum in descriptor.enum_types:
+        json_data[enum.name] = enum.values[0].name
+    for oneof in descriptor.oneofs:
+        json_data[oneof.name] = descriptor_to_json(oneof)
+    for extension in descriptor.extensions:
+        json_data[extension.name] = descriptor_to_json(extension, use_full_name=True)
+    return json_data
+
+def enum_descriptor_to_json(enum_descriptor: EnumDescriptor) -> Dict[str, int]:
+    json_data = {}
+    for value in enum_descriptor.values:
+        json_data[value.name] = value.number
+    return json_data
+
+def get_default_value(field_type:int) -> Any:
+    if field_type in [1, 2]:
+        return 0.0
+    elif field_type in [3,4,5,6,7,13,14,15,16,17]:
+        return 0
+    elif field_type == 5:
+        return False
+    elif field_type == 6:
+        return "string"
+    elif field_type == 7:
+        return b"bytes"
+    else:
+        return None
 
 def describe_descriptor(descriptor: Descriptor, indent: int = 0) -> str:
     """

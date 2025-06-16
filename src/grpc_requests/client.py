@@ -20,7 +20,7 @@ from google.protobuf.descriptor_pb2 import ServiceDescriptorProto
 from google.protobuf.json_format import MessageToDict, ParseDict
 from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 
-from .utils import describe_descriptor, load_data
+from .utils import describe_descriptor, descriptor_to_json, load_data, FIELD_TYPES
 
 import importlib.metadata
 from typing import (
@@ -427,6 +427,10 @@ class BaseGrpcClient(BaseClient):
         return describe_descriptor(
             self.get_method_descriptor(service, method).input_type
         )
+
+    def describe_request_beta(self, service: str, method: str) -> dict:
+        desc = self.get_method_descriptor(service, method).input_type
+        return descriptor_to_json(desc)
 
     def describe_response(self, service, method):
         return describe_descriptor(

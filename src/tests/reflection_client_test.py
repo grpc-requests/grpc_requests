@@ -123,6 +123,14 @@ def test_unary_unary(helloworld_reflection_client):
     assert response == {"message": "Hello, sinsky!"}
 
 
+def test_describee_request_beta(client_tester_reflection_client):
+    response = client_tester_reflection_client.describe_request_beta(
+        "client_tester.ClientTester", "TestUnaryUnary"
+    )
+    logging.info(response)
+    assert not response, f"Response was {response}"
+
+
 def test_describe_request(client_tester_reflection_client):
     request_description = client_tester_reflection_client.describe_request(
         "client_tester.ClientTester", "TestUnaryUnary"
