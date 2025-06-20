@@ -15,7 +15,12 @@ message TestRequest {
     uint64 uuid = 3;
     bool sample_flag = 4;
     string request_name = 5;
-    repeated bytes extra_data = 6;
+    repeated Metadata meta_data = 6;
+}
+
+message Metadata {
+    string key = 1;
+    bytes data = 2;
 }
 
 message TestResponse {
