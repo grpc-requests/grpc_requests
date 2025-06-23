@@ -11,6 +11,7 @@ from typing import (
     Tuple,
     Union,
 )
+import warnings
 
 import grpc
 from google.protobuf import descriptor_pb2, message_factory
@@ -20,7 +21,7 @@ from google.protobuf.descriptor_pb2 import ServiceDescriptorProto
 from google.protobuf.json_format import MessageToDict, ParseDict
 from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 
-from .utils import describe_descriptor, descriptor_to_json, load_data, FIELD_TYPES
+from .utils import describe_descriptor, descriptor_to_json, load_data
 
 import importlib.metadata
 from typing import (
@@ -424,15 +425,29 @@ class BaseGrpcClient(BaseClient):
         return self._desc_pool.FindServiceByName(service)
 
     def describe_request(self, service, method):
+        warnings.warn(
+            "describe_request is deprecated and will be removed in version 0.1.23. Please use request_as_json",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return describe_descriptor(
             self.get_method_descriptor(service, method).input_type
         )
 
-    def describe_request_beta(self, service: str, method: str) -> dict:
+    def request_to_json(self, service: str, method: str) -> dict:
         desc = self.get_method_descriptor(service, method).input_type
         return descriptor_to_json(desc)
 
+    def response_to_json(self, service: str, method: str) -> dict:
+        desc = self.get_method_descriptor(service, method).output_type
+        return descriptor_to_json(desc)
+
     def describe_response(self, service, method):
+        warnings.warn(
+            "describe_response is deprecated and will be removed in version 0.1.23. Please use response_as_json",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return describe_descriptor(
             self.get_method_descriptor(service, method).output_type
         )

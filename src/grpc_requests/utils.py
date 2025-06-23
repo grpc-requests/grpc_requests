@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Dict, Any
+import warnings
 
 from google.protobuf.descriptor import (
     Descriptor,
@@ -37,15 +38,28 @@ def load_data(_path):
     return data
 
 
-def descriptor_to_json(descriptor: Descriptor, use_full_name: bool = False) -> Dict[str, Any]:
+def descriptor_to_json(
+    descriptor: Descriptor, use_full_name: bool = False
+) -> Dict[str, Any]:
+    """
+    Converts a descriptor to a JSON object. Used to print an exemplar of given descriptor as
+    a JSON object for user reference.
+    :param descriptor: Descriptor - the descriptor to convert
+    :param use_full_name: bool - whether to use full name or not
+    :return: Dict[str, Any] - the JSON object representing the descriptor
+    """
     json_data = {}
     for field in descriptor.fields:
         field_name = field.full_name if use_full_name else field.name
-        field_value = get_default_value(field.type)
+        field_value = (
+            descriptor_to_json(field.message_type)
+            if field.message_type
+            else get_default_value(field.type)
+        )
         print_value = [field_value] if field.label == 3 else field_value
         json_data[field_name] = print_value
-    for descriptor in descriptor.nested_types:
-        json_data[descriptor.name] = descriptor_to_json(descriptor)
+    for n_type in descriptor.nested_types:
+        json_data[n_type.name] = descriptor_to_json(n_type)
     for enum in descriptor.enum_types:
         json_data[enum.name] = enum.values[0].name
     for oneof in descriptor.oneofs:
@@ -54,25 +68,44 @@ def descriptor_to_json(descriptor: Descriptor, use_full_name: bool = False) -> D
         json_data[extension.name] = descriptor_to_json(extension, use_full_name=True)
     return json_data
 
+
 def enum_descriptor_to_json(enum_descriptor: EnumDescriptor) -> Dict[str, int]:
+    """
+    Converts an EnumDescriptor to a JSON object.
+    :param enum_descriptor: EnumDescriptor - the enum descriptor to convert
+    :return: Dict[str, int] - the JSON object representing the enum descriptor
+    """
     json_data = {}
     for value in enum_descriptor.values:
         json_data[value.name] = value.number
     return json_data
 
-def get_default_value(field_type:int) -> Any:
+
+def get_default_value(field_type: int) -> Any:
+    """
+    Returns the default value for a given field type.
+    :param field_type: int - the field type
+    :return: Any - the default value best describing the field type
+    """
+    # Floating point numbers
     if field_type in [1, 2]:
         return 0.0
-    elif field_type in [3,4,5,6,7,13,14,15,16,17]:
+    # Signed and Unsigned integers
+    elif field_type in [3, 4, 5, 6, 7, 13, 14, 15, 16, 17]:
         return 0
-    elif field_type == 5:
+    # Boolean
+    elif field_type == 8:
         return False
-    elif field_type == 6:
+    # String
+    elif field_type == 9:
         return "string"
-    elif field_type == 7:
+    # Bytes
+    elif field_type == 12:
         return b"bytes"
+    # Unhandled types
     else:
         return None
+
 
 def describe_descriptor(descriptor: Descriptor, indent: int = 0) -> str:
     """
@@ -80,6 +113,11 @@ def describe_descriptor(descriptor: Descriptor, indent: int = 0) -> str:
     :param descriptor: Descriptor - a protobuf descriptor
     :return: str - a human readable description of the descriptor
     """
+    warnings.warn(
+        "describe_descriptor is deprecated and will be removed in version 0.1.23. Please use descriptor_as_json",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     description = descriptor.name
     padding = "\t" * indent
 
