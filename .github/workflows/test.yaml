@@ -46,10 +46,12 @@ jobs:
                   if [ "${{ matrix.protobuf-version }}" = "5.29.5" ]; then
                     pip install grpcio==1.71.0
                     pip install grpcio-reflection==1.71.0
-                  else if [ "${{ matrix.protobuf-version }}" = "6.30.2" ]; then
+                  fi
+                  if [ "${{ matrix.protobuf-version }}" = "6.30.2" ]; then
                     pip install grpcio==1.72.1
                     pip install grpcio-reflection==1.72.1
-                  else
+                  fi
+                  if [ "${{ matrix.protobuf-version }}" = "6.31.1" ]; then
                     pip install grpcio==1.73.1
                     pip install grpcio-reflection==1.73.1
                   fi
