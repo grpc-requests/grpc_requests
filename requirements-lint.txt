@@ -1,5 +1,5 @@
 types-grpcio >= 1.0.0.20250506
 types-grpcio-reflection >= 1.0.0.20250506
 mypy>=1.10.0
-ruff>=0.11.0
-types-protobuf>=5.29.1
+ruff>=0.12.1
+types-protobuf>=5.29.5
