@@ -6,22 +6,22 @@ import nox
     "python,protobuf",
     [
         (python, protobuf)
-        for python in ["3.9","3.10","3.11","3.12", "3.13"]
-        for protobuf in ["5.29.5","6.30.2"]
+        for python in ["3.9","3.10","3.11","3.12","3.13"]
+        for protobuf in ["5.29.5","6.30.2", "6.31.1"]
     ]
 )
 def test(session, protobuf):
     session.install("-e",".")
     session.install("-r", "requirements-test.txt")
-    # grpcio after version 1.65 is not compatible with protobuf 4.25.4
-    if protobuf == "5.29.5":
-        session.install("grpcio==1.71.0")
-        session.install("grpcio-reflection==1.71.0")
-    if protobuf == "6.30.2":
-        session.install("grpcio==1.71.0")
-        session.install("grpcio-reflection==1.71.0")
-
+    # Notes!
     session.install(f"protobuf=={protobuf}")
+    grpcio = "1.71.0"
+    if protobuf == "6.30.2":
+        grpcio = "1.72.1"
+    if protobuf == "6.31.1":
+        grpcio = "1.73.1"
+    session.install(f"grpcio=={grpcio}")
+    session.install(f"grpcio-reflection=={grpcio}")
     session.run("pytest")
 
 @nox.session

@@ -1,4 +1,5 @@
-grpc-stubs >= 1.53.0
+types-grpcio >= 1.0.0.20250506
+types-grpcio-reflection >= 1.0.0.20250506
 mypy>=1.10.0
 ruff>=0.11.0
 types-protobuf>=5.29.1

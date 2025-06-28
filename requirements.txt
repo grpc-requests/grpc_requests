@@ -1,5 +1,5 @@
-grpcio >= 1.60.1
-grpcio-reflection >= 1.60.1
-protobuf>=4.25.0
+grpcio >= 1.70.1
+grpcio-reflection >= 1.70.1
+protobuf>=5.29.5
 google-api-core>=2.11.1
-cryptography>=42.0.8
+cryptography>=45.0.4
