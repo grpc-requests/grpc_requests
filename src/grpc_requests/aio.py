@@ -18,10 +18,7 @@ import importlib.metadata
 from typing import Protocol
 
 import grpc
-from google.protobuf import (
-    descriptor_pb2,
-    message_factory,
-)
+from google.protobuf import descriptor_pb2
 from google.protobuf import (
     descriptor_pool as _descriptor_pool,
 )
@@ -33,6 +30,7 @@ from google.protobuf import (
 from google.protobuf.descriptor import MethodDescriptor, ServiceDescriptor
 from google.protobuf.descriptor_pb2 import ServiceDescriptorProto
 from google.protobuf.json_format import MessageToDict, ParseDict
+from google.protobuf.message_factory import GetMessageClass
 from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 
 from .client import CredentialsInfo
@@ -43,15 +41,6 @@ logger = logging.getLogger(__name__)
 
 def get_metadata(package_name: str):
     return importlib.metadata.version(package_name)
-
-
-# Import GetMessageClass if protobuf version supports it
-protobuf_version = get_metadata("protobuf").split(".")
-get_message_class_supported = (
-    int(protobuf_version[0]) >= 4 and int(protobuf_version[1]) >= 22
-)
-if get_message_class_supported:
-    from google.protobuf.message_factory import GetMessageClass
 
 
 class DescriptorImport:
@@ -341,13 +330,8 @@ class BaseAsyncGrpcClient(BaseAsyncClient):
                 method_name
             ]
 
-            if get_message_class_supported:
-                input_type = GetMessageClass(method_desc.input_type)
-                output_type = GetMessageClass(method_desc.output_type)
-            else:
-                msg_factory = message_factory.MessageFactory(self._desc_pool)
-                input_type = msg_factory.GetPrototype(method_desc.input_type)
-                output_type = msg_factory.GetPrototype(method_desc.output_type)
+            input_type = GetMessageClass(method_desc.input_type)
+            output_type = GetMessageClass(method_desc.output_type)
 
             method_type = MethodTypeMatch[
                 (method_proto.client_streaming, method_proto.server_streaming)

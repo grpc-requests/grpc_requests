@@ -253,18 +253,20 @@ assert sayHelloDescriptor.containing_service.name == "helloworld.Greeter"
 
 ### Describing Requests and Responses
 
-grpc_requests makes available two experimental methods to provide users ways
-to retrieve human readable descriptions of the request and response for implementer
-review.
+grpc_requests makes available two methods to provide users ways
+to retrieve descriptions of the request and response for implementer
+review in a JSON format.
 
 ```python
 from grpc_requests.client import Client
 
 client = Client("localhost:50051")
 
-sayHelloRequestDescription = client.describe_request("helloworld.Greeter", "SayHello")
-sayHelloResponseDescription = client.describe_response("helloworld.Greeter", "SayHello")
+sayHelloRequestJsonDescription = client.request_to_json("helloworld.Greeter", "SayHello")
+sayHelloResponseJsonDescription = client.response_to_json("helloworld.Greeter", "SayHello")
 
-print(sayHelloRequestDescription)
-print(sayHelloResponseDescription)
+print(sayHelloRequestJsonDescription)
+# {"name": "string"}
+print(sayHelloResponseJsonDescription)
+# {"message": "string"}
 ```

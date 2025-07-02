@@ -11,16 +11,18 @@ from typing import (
     Tuple,
     Union,
 )
+import warnings
 
 import grpc
-from google.protobuf import descriptor_pb2, message_factory
+from google.protobuf import descriptor_pb2
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf.descriptor import MethodDescriptor, ServiceDescriptor
 from google.protobuf.descriptor_pb2 import ServiceDescriptorProto
 from google.protobuf.json_format import MessageToDict, ParseDict
+from google.protobuf.message_factory import GetMessageClass
 from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 
-from .utils import describe_descriptor, load_data
+from .utils import describe_descriptor, descriptor_to_json, load_data
 
 import importlib.metadata
 from typing import (
@@ -32,13 +34,6 @@ from typing import (
 def get_metadata(package_name: str):
     return importlib.metadata.version(package_name)
 
-
-protobuf_version = get_metadata("protobuf").split(".")
-get_message_class_supported = (
-    int(protobuf_version[0]) >= 4 and int(protobuf_version[1]) >= 22
-)
-if get_message_class_supported:
-    from google.protobuf.message_factory import GetMessageClass
 
 logger = logging.getLogger(__name__)
 
@@ -314,13 +309,8 @@ class BaseGrpcClient(BaseClient):
                 method_name
             ]
 
-            if get_message_class_supported:
-                input_type = GetMessageClass(method_desc.input_type)
-                output_type = GetMessageClass(method_desc.output_type)
-            else:
-                msg_factory = message_factory.MessageFactory(self._desc_pool)
-                input_type = msg_factory.GetPrototype(method_desc.input_type)
-                output_type = msg_factory.GetPrototype(method_desc.output_type)
+            input_type = GetMessageClass(method_desc.input_type)
+            output_type = GetMessageClass(method_desc.output_type)
 
             method_type = MethodTypeMatch[
                 (method_proto.client_streaming, method_proto.server_streaming)
@@ -424,11 +414,29 @@ class BaseGrpcClient(BaseClient):
         return self._desc_pool.FindServiceByName(service)
 
     def describe_request(self, service, method):
+        warnings.warn(
+            "describe_request is deprecated and will be removed in version 0.1.23. Please use request_as_json",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return describe_descriptor(
             self.get_method_descriptor(service, method).input_type
         )
 
+    def request_to_json(self, service: str, method: str) -> dict:
+        desc = self.get_method_descriptor(service, method).input_type
+        return descriptor_to_json(desc)
+
+    def response_to_json(self, service: str, method: str) -> dict:
+        desc = self.get_method_descriptor(service, method).output_type
+        return descriptor_to_json(desc)
+
     def describe_response(self, service, method):
+        warnings.warn(
+            "describe_response is deprecated and will be removed in version 0.1.23. Please use response_as_json",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return describe_descriptor(
             self.get_method_descriptor(service, method).output_type
         )

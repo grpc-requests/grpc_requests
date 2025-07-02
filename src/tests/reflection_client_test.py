@@ -123,6 +123,29 @@ def test_unary_unary(helloworld_reflection_client):
     assert response == {"message": "Hello, sinsky!"}
 
 
+def test_request_to_json(client_tester_reflection_client):
+    response = client_tester_reflection_client.request_to_json(
+        "client_tester.ClientTester", "TestUnaryUnary"
+    )
+    expected_response = {
+        "factor": 0,
+        "readings": [0.0],
+        "uuid": 0,
+        "sample_flag": False,
+        "request_name": "string",
+        "meta_data": [{"key": "string", "data": b"bytes"}],
+    }
+    assert response == expected_response, f"Response was {response}"
+
+
+def test_response_to_json(client_tester_reflection_client):
+    response = client_tester_reflection_client.response_to_json(
+        "client_tester.ClientTester", "TestUnaryUnary"
+    )
+    expected_response = {"average": 0.0, "feedback": "string"}
+    assert response == expected_response, f"Response was {response}"
+
+
 def test_describe_request(client_tester_reflection_client):
     request_description = client_tester_reflection_client.describe_request(
         "client_tester.ClientTester", "TestUnaryUnary"
@@ -134,7 +157,7 @@ Fields:
 \tuuid: UINT64
 \tsample_flag: BOOL
 \trequest_name: STRING
-\textra_data: BYTES"""
+\tmeta_data: MESSAGE"""
     assert request_description == expected_request_description
 
 
