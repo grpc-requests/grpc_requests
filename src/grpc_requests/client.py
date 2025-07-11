@@ -22,7 +22,7 @@ from google.protobuf.json_format import MessageToDict, ParseDict
 from google.protobuf.message_factory import GetMessageClass
 from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 
-from .utils import describe_descriptor, descriptor_to_json, load_data
+from .utils import CredentialsInfo, describe_descriptor, descriptor_to_json
 
 import importlib.metadata
 from typing import (
@@ -60,15 +60,6 @@ def reflection_request(channel, requests):
         logger.exception(err)
 
 
-PathLikeString = str
-
-
-class CredentialsInfo(TypedDict):
-    root_certificates: Union[None, PathLikeString, bytes]
-    private_key: Union[None, PathLikeString, bytes]
-    certificate_chain: Union[None, PathLikeString, bytes]
-
-
 class BaseClient:
     def __init__(
         self,
@@ -78,7 +69,7 @@ class BaseClient:
         channel_options=None,
         ssl=False,
         compression=None,
-        credentials: Optional[CredentialsInfo] = None,
+        credentials: CredentialsInfo = CredentialsInfo(root_certificates=None, private_key=None, certificate_chain=None),
         interceptors=None,
         **kwargs,
     ):
@@ -87,16 +78,10 @@ class BaseClient:
         self.compression = compression
         self.channel_options = channel_options
         if ssl:
-            _credentials = None
-            if credentials:
-                _credentials = {
-                    k: load_data(v) if isinstance(v, str) else v
-                    for k, v in credentials.items()
-                }
-
+            ssl_credentials = credentials.create_ssl_credentials()
             self._channel = grpc.secure_channel(
                 endpoint,
-                grpc.ssl_channel_credentials(**_credentials),  # type: ignore
+                ssl_credentials,
                 options=self.channel_options,
                 compression=self.compression,
             )

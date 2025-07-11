@@ -9,6 +9,17 @@ from .client_tester_pb2_grpc import (
 )
 from .client_tester_pb2 import TestResponse, DESCRIPTOR
 
+import os
+
+
+def _load_credential_from_file(filepath):
+    real_path = os.path.join(os.path.dirname(__file__), filepath)
+    with open(real_path, "rb") as f:
+        return f.read()
+
+SERVER_CERTIFICATE = _load_credential_from_file("../credentials/localhost.pem")
+SERVER_CERTIFICATE_KEY = _load_credential_from_file("../credentials/localhost-key.pem")
+
 
 class ClientTester(ClientTesterServicer):
     def TestUnaryUnary(self, request, context):
@@ -32,15 +43,17 @@ class ClientTester(ClientTesterServicer):
 class ClientTesterServer:
     server = None
 
-    def __init__(self, port: str):
+    def __init__(self, port: str, secure_port: str):
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
         add_ClientTesterServicer_to_server(ClientTester(), self.server)
         SERVICE_NAMES = (
             DESCRIPTOR.services_by_name["ClientTester"].full_name,
             reflection.SERVICE_NAME,
         )
+        logging.debug(f"Key {SERVER_CERTIFICATE_KEY}, Server Certificate {SERVER_CERTIFICATE}")
         reflection.enable_server_reflection(SERVICE_NAMES, self.server)
         self.server.add_insecure_port(f"[::]:{port}")
+        self.server.add_secure_port(f"[::]:{secure_port}", grpc.ssl_server_credentials([(SERVER_CERTIFICATE_KEY, SERVER_CERTIFICATE)], require_client_auth=False))
 
     def serve(self):
         logging.debug("Server starting...")
@@ -56,5 +69,6 @@ class ClientTesterServer:
 
 
 if __name__ == "__main__":
-    server = ClientTesterServer("50051")
+    logging.basicConfig(level=logging.DEBUG)
+    server = ClientTesterServer("50051", "50052")
     server.serve()

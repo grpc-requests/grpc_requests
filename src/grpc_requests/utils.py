@@ -1,5 +1,7 @@
 from pathlib import Path
-from typing import Dict, Any
+from dataclasses import dataclass
+from typing import Dict, Any, Union
+import grpc
 import warnings
 
 from google.protobuf.descriptor import (
@@ -8,6 +10,23 @@ from google.protobuf.descriptor import (
     OneofDescriptor,
 )
 
+@dataclass
+class CredentialsInfo:
+    root_certificates: Union[str, bytes, None]
+    private_key: Union[str, bytes, None]
+    certificate_chain: Union[str, bytes, None]
+
+    def create_ssl_credentials(self) -> grpc.ChannelCredentials:
+        if isinstance(self.root_certificates, str):
+            self.root_certificates = load_data(self.root_certificates)
+        if isinstance(self.private_key, str):
+            self.private_key = load_data(self.private_key)
+        if isinstance(self.certificate_chain, str):
+            self.certificate_chain = load_data(self.certificate_chain)
+
+        print(f"CredentialsInfo: Root Certificates: {self.root_certificates}, Private Key: {self.private_key}, Certificate Chain: {self.certificate_chain}")
+
+        return grpc.ssl_channel_credentials(self.root_certificates, self.private_key, self.certificate_chain)
 
 # String descriptions of protobuf field types
 FIELD_TYPES = [
@@ -30,7 +49,6 @@ FIELD_TYPES = [
     "SINT32",
     "SINT64",
 ]
-
 
 def load_data(_path):
     with open(Path(_path).expanduser(), "rb") as f:

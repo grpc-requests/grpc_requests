@@ -7,6 +7,7 @@ from google.protobuf import descriptor_pb2, descriptor_pool
 from google.protobuf.descriptor import MethodDescriptor
 from google.protobuf.json_format import ParseError
 from grpc_requests.client import Client, CustomArgumentParsers, MethodType
+from grpc_requests.utils import CredentialsInfo
 from tests.common import MetadataClientInterceptor
 from tests.test_servers.dependencies import (
     dependencies_pb2,
@@ -113,7 +114,6 @@ def test_methods_meta(helloworld_reflection_client):
     service = helloworld_reflection_client.service("helloworld.Greeter")
     meta = service.methods_meta
     assert meta["HelloEveryone"].method_type == MethodType.STREAM_UNARY
-
 
 def test_unary_unary(helloworld_reflection_client):
     response = helloworld_reflection_client.request(

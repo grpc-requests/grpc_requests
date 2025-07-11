@@ -33,8 +33,7 @@ from google.protobuf.json_format import MessageToDict, ParseDict
 from google.protobuf.message_factory import GetMessageClass
 from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 
-from .client import CredentialsInfo
-from .utils import load_data
+from .utils import CredentialsInfo
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +73,7 @@ class BaseAsyncClient:
         channel_options=None,
         ssl=False,
         compression=None,
-        credentials: Optional[CredentialsInfo] = None,
+        credentials: CredentialsInfo = CredentialsInfo(root_certificates=None, private_key=None, certificate_chain=None),
         interceptors=None,
         **kwargs,
     ):
@@ -84,16 +83,17 @@ class BaseAsyncClient:
         self.compression = compression
         self.channel_options = channel_options
         if ssl:
-            _credentials = {}
+            _credentials = grpc.ssl_channel_credentials()
             if credentials:
-                _credentials = {
+                cred_dict = {
                     k: load_data(v) if isinstance(v, str) else v
                     for k, v in credentials.items()
                 }
+                _credentials = grpc.ssl_channel_credentials(**cred_dict)
 
             self._channel = grpc.aio.secure_channel(
                 endpoint,
-                grpc.ssl_channel_credentials(**_credentials),  # type: ignore
+                _credentials,  # type: ignore
                 options=self.channel_options,
                 compression=self.compression,
                 interceptors=interceptors,
