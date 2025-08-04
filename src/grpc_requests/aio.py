@@ -73,7 +73,7 @@ class BaseAsyncClient:
         channel_options=None,
         ssl=False,
         compression=None,
-        credentials: CredentialsInfo = CredentialsInfo(root_certificates=None, private_key=None, certificate_chain=None),
+        credentials: Union[CredentialsInfo, None] = None,
         interceptors=None,
         **kwargs,
     ):
@@ -83,17 +83,16 @@ class BaseAsyncClient:
         self.compression = compression
         self.channel_options = channel_options
         if ssl:
-            _credentials = grpc.ssl_channel_credentials()
-            if credentials:
-                cred_dict = {
-                    k: load_data(v) if isinstance(v, str) else v
-                    for k, v in credentials.items()
-                }
-                _credentials = grpc.ssl_channel_credentials(**cred_dict)
+            if not credentials:
+                credentials = CredentialsInfo(
+                    root_certificates=None, private_key=None, certificate_chain=None
+                )
+
+            ssl_credentials = credentials.create_ssl_credentials()
 
             self._channel = grpc.aio.secure_channel(
                 endpoint,
-                _credentials,  # type: ignore
+                ssl_credentials,  # type: ignore
                 options=self.channel_options,
                 compression=self.compression,
                 interceptors=interceptors,

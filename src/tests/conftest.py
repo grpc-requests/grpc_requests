@@ -16,7 +16,7 @@ def helloworld_server_starter():
 
 
 def client_tester_server_starter():
-    server = ClientTesterServer("50052")
+    server = ClientTesterServer("50052", "50062")
     server.serve()
 
 

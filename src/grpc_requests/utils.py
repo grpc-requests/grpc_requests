@@ -10,23 +10,25 @@ from google.protobuf.descriptor import (
     OneofDescriptor,
 )
 
+
 @dataclass
 class CredentialsInfo:
-    root_certificates: Union[str, bytes, None]
-    private_key: Union[str, bytes, None]
-    certificate_chain: Union[str, bytes, None]
+    root_certificates: Union[bytes, None]
+    private_key: Union[bytes, None]
+    certificate_chain: Union[bytes, None]
 
+    def __post_init__(self):
+        for attr in ["root_certificates", "private_key", "certificate_chain"]:
+            value = getattr(self, attr)
+            if isinstance(value, str):
+                setattr(self, attr, load_data(value))
+
+    # Hey Doofus - the act of making the class should do the loading, not every time you create creds
     def create_ssl_credentials(self) -> grpc.ChannelCredentials:
-        if isinstance(self.root_certificates, str):
-            self.root_certificates = load_data(self.root_certificates)
-        if isinstance(self.private_key, str):
-            self.private_key = load_data(self.private_key)
-        if isinstance(self.certificate_chain, str):
-            self.certificate_chain = load_data(self.certificate_chain)
+        return grpc.ssl_channel_credentials(
+            self.root_certificates, self.private_key, self.certificate_chain
+        )
 
-        print(f"CredentialsInfo: Root Certificates: {self.root_certificates}, Private Key: {self.private_key}, Certificate Chain: {self.certificate_chain}")
-
-        return grpc.ssl_channel_credentials(self.root_certificates, self.private_key, self.certificate_chain)
 
 # String descriptions of protobuf field types
 FIELD_TYPES = [
@@ -49,6 +51,7 @@ FIELD_TYPES = [
     "SINT32",
     "SINT64",
 ]
+
 
 def load_data(_path):
     with open(Path(_path).expanduser(), "rb") as f:

@@ -26,8 +26,7 @@ from .utils import CredentialsInfo, describe_descriptor, descriptor_to_json
 
 import importlib.metadata
 from typing import (
-    Protocol,
-    TypedDict,  # pylint: disable=no-name-in-module
+    Protocol,  # pylint: disable=no-name-in-module
 )
 
 
@@ -69,7 +68,7 @@ class BaseClient:
         channel_options=None,
         ssl=False,
         compression=None,
-        credentials: CredentialsInfo = CredentialsInfo(root_certificates=None, private_key=None, certificate_chain=None),
+        credentials: Union[CredentialsInfo, None] = None,
         interceptors=None,
         **kwargs,
     ):
@@ -78,6 +77,11 @@ class BaseClient:
         self.compression = compression
         self.channel_options = channel_options
         if ssl:
+            if not credentials:
+                credentials = CredentialsInfo(
+                    root_certificates=None, private_key=None, certificate_chain=None
+                )
+
             ssl_credentials = credentials.create_ssl_credentials()
             self._channel = grpc.secure_channel(
                 endpoint,
