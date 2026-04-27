@@ -1,4 +1,4 @@
-grpcio >= 1.60.1
+grpcio >= 1.80.0
 grpcio-reflection >= 1.60.1
 google-api-core>=2.11.1
 cryptography>=42.0.8
